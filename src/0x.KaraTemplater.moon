@@ -117,6 +117,7 @@ parse_templates = (subs, tenv) ->
 			repetitions: {}
 			repetition_order: {}
 			condition: nil
+			cond_is_negated: false
 			keep_tags: false
 			multi: false
 			noblank: false
@@ -140,7 +141,7 @@ parse_templates = (subs, tenv) ->
 			modifier = modifiers[j]
 			j += 1
 			switch modifier
-				when 'cond', 'if'
+				when 'cond', 'if', 'unless'
 					if component.condition != nil
 						error 'Encountered multiple `cond` modifiers on a single component.'
 					path = modifiers[j]
@@ -149,6 +150,8 @@ parse_templates = (subs, tenv) ->
 						if path\match pattern
 							error "Invalid condition path: #{path}"
 					component.condition = path
+					if modifier == 'unless'
+						component.cond_is_negated = true
 
 				when 'loop', 'repeat'
 					loop_var, loop_count = modifiers[j], tonumber modifiers[j + 1]
@@ -408,7 +411,11 @@ should_eval = (component, tenv, obj, base_component) ->
 		-- No-blank filtering is irrelevant for `once` components.
 		return false if obj.is_blank or obj.is_space
 
-	return false unless eval_cond component.condition, tenv
+	cond_val = eval_cond component.condition, tenv
+	if component.cond_is_negated
+		return false if cond_val
+	else
+		return false unless cond_val
 
 	true
 
