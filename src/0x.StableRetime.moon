@@ -61,7 +61,7 @@ processAll = (subs, sel, start) ->
 	videoFrame = aegisub.project_properties!.video_position
 	if not start
 		videoFrame += 1
-	videoPosition = aegisub.ms_from_frame video_frame
+	videoPosition = aegisub.ms_from_frame videoFrame
 	videoPosition -= videoPosition % 10
 
 	lines = LineCollection subs, sel, () -> true
