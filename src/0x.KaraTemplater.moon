@@ -36,6 +36,8 @@ class template_env
 			when 'postline'  then @orgline.duration, @orgline.duration
 			when 'start2syl' then 0, @syl.start_time
 			when 'syl2end'   then @syl.end_time, @orgline.duration
+			when 'presyl2postline' then @syl.start_time, @orgline.duration
+			when 'preline2postsyl' then 0, @syl.end_time
 			when 'set', 'abs'
 				@line.start_time = start_offset
 				@line.end_time = end_offset
