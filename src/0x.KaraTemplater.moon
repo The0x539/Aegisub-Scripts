@@ -27,17 +27,20 @@ class template_env
 		return if @line == nil
 		start_offset or= 0
 		end_offset or= 0
+		syl = @syl
+		if syl == nil and @char != nil
+			syl = @char.syl
 		start_base, end_base = switch mode
-			when 'syl'       then @syl.start_time, @syl.end_time
-			when 'presyl'    then @syl.start_time, @syl.start_time
-			when 'postsyl'   then @syl.end_time, @syl.end_time
+			when 'syl'       then syl.start_time, syl.end_time
+			when 'presyl'    then syl.start_time, syl.start_time
+			when 'postsyl'   then syl.end_time, syl.end_time
 			when 'line'      then 0, @orgline.duration
 			when 'preline'   then 0, 0
 			when 'postline'  then @orgline.duration, @orgline.duration
-			when 'start2syl' then 0, @syl.start_time
-			when 'syl2end'   then @syl.end_time, @orgline.duration
-			when 'presyl2postline' then @syl.start_time, @orgline.duration
-			when 'preline2postsyl' then 0, @syl.end_time
+			when 'start2syl' then 0, syl.start_time
+			when 'syl2end'   then syl.end_time, @orgline.duration
+			when 'presyl2postline' then syl.start_time, @orgline.duration
+			when 'preline2postsyl' then 0, syl.end_time
 			when 'set', 'abs'
 				@line.start_time = start_offset
 				@line.end_time = end_offset
