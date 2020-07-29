@@ -336,6 +336,7 @@ preproc_words = (line) ->
 preproc_chars = (line) ->
 	line.chars = {}
 	i = 1
+	left = 0
 	for word in *line.words
 		word.chars = {}
 		for syl in *word.syls
@@ -346,13 +347,20 @@ preproc_chars = (line) ->
 				char.is_space = (ch == ' ' or ch == '\t') -- matches karaskel behavior
 				char.chars = {char}
 
+				char.width, char.height, char.descent, _ = aegisub.text_extents line.styleref, ch
+				char.left = left
+				char.center = left + char.width/2
+				char.right = left + char.width
+
+				left += char.width
+
 				table.insert syl.chars, char
 				table.insert word.chars, char
 				table.insert line.chars, char
 
 				i += 1
 
-	-- TODO: karaskel-esque info for char objects
+	-- TODO: more karaskel-esque info for char objects
 
 -- Give all objects within a line information about their position in terms of words, syls, and chars.
 populate_indices = (line) ->
