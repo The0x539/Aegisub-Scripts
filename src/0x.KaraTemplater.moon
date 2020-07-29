@@ -80,6 +80,18 @@ class template_env
 		if USE_KARAOK
 			@ln = karaOK
 			@ln.init @
+			-- some monkey-patching to address some execution environment differences from karaOK
+			ln_tag_move = @ln.tag.move
+			@ln.tag.move = (...) ->
+				did_patch = false
+				if @syl == nil and @char != nil
+					@syl = @char
+					did_patch = true
+				-- discards multiple return values, but that realistically shouldn't be expected here anyway
+				tag = ln_tag_move ...
+				if did_patch
+					@syl = nil
+				tag
 
 		@retime = _retime @
 		@relayer = _relayer @
