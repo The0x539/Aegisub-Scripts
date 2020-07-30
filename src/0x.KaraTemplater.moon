@@ -81,17 +81,21 @@ class template_env
 			@ln = karaOK
 			@ln.init @
 			-- some monkey-patching to address some execution environment differences from karaOK
-			ln_tag_move = @ln.tag.move
-			@ln.tag.move = (...) ->
-				did_patch = false
+			monkey_patch = (f) -> (...) ->
+				patched_syl, patched_line = false, false
 				if @syl == nil and @char != nil
 					@syl = @char
-					did_patch = true
-				-- discards multiple return values, but that realistically shouldn't be expected here anyway
-				tag = ln_tag_move ...
-				if did_patch
-					@syl = nil
-				tag
+					patched_syl = true
+				if @line == nil and @orgline != nil
+					@line = @orgline
+					patched_line = true
+				retvals = {f ...}
+				@syl = nil if patched_syl
+				@line = nil if patched_line
+				table.unpack retvals
+
+			@ln.tag.pos = monkey_patch @ln.tag.pos
+			@ln.tag.move = monkey_patch @ln.tag.move
 
 		@retime = _retime @
 		@relayer = _relayer @
