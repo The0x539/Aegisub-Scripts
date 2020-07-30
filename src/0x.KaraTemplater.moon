@@ -139,6 +139,7 @@ parse_templates = (subs, tenv) ->
 			multi: false
 			noblank: false
 			notext: false
+			merge_tags: true
 			layer: line.layer
 			template_actor: line.actor
 
@@ -228,6 +229,11 @@ parse_templates = (subs, tenv) ->
 					j += 1
 					component.interested_template_actors or= {}
 					component.interested_template_actors[actor] = true
+
+				when 'nomerge'
+					unless line_type == 'template'
+						error 'The `nomerge` modifier is only valid for templates.'
+					component.merge_tags = false
 
 				else
 					error "Unhandled modifier: `#{modifier}`"
@@ -586,6 +592,10 @@ apply_templates = (subs, lines, components, tenv) ->
 
 					tags = run_mixins mixin_classes, template
 					tenv.line.text = build_text prefix, tenv.line.chars, tags, template
+					if template.merge_tags
+						-- A primitive way of doing this. Patches welcome.
+						-- Otherwise, if you're doing something fancy enough that this breaks it and `nomerge` isn't acceptable, you're on your own.
+						tenv.line.text = tenv.line.text\gsub '}{', ''
 					subs.append tenv.line
 
 					tenv.line = nil
