@@ -196,7 +196,7 @@ parse_templates = (subs, tenv) ->
 				when 'keeptags', 'multi'
 					unless classifier == 'syl'
 						error "The `#{modifier}` modifier is only valid for `syl` components."
-					component[modifier] = true
+					error "The `#{modifier}` modifier is not yet implemented."
 
 				when 'notext'
 					unless line_type == 'template'
