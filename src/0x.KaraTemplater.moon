@@ -68,14 +68,10 @@ class template_env
 
 	_set = => (key, val) -> @[key] = val
 
-	new: (subs, meta, styles) =>
+	new: (@subs, @meta, @styles) =>
 		@_ENV = @
 		@tenv = @
-
-		@meta = meta
-		@styles = styles
-		@subs = subs
-		@subtitles = subs
+		@subtitles = @subs
 
 		if USE_KARAOK
 			@ln = karaOK
@@ -643,7 +639,7 @@ main = (subs, sel, active) ->
 	task 'Collecting header data...'
 	meta, styles = karaskel.collect_head subs, false
 
-	tenv = template_env meta, styles, subs
+	tenv = template_env subs, meta, styles
 
 	task 'Parsing templates...'
 	components, interested_styles = parse_templates subs, tenv
