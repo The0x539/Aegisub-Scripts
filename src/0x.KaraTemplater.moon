@@ -557,6 +557,7 @@ apply_templates = (subs, lines, components, tenv) ->
 
 	run_templates = (cls, orgobj) ->
 		for template in *components.template[cls]
+			tenv.template_actor = template.template_actor
 			tenv.loopctx = loopctx template
 			while not tenv.loopctx.done
 				if should_eval template, tenv, orgobj
