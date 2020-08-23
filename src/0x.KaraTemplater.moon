@@ -458,7 +458,11 @@ should_eval = (component, tenv, obj, base_component) ->
 
 -- Evaluate a dollar-variable.
 eval_inline_var = (tenv) -> (var) ->
-	syl = tenv.syl or tenv.char.syl
+	local syl
+	if tenv.syl
+		syl = tenv.syl
+	elseif tenv.char
+		syl = tenv.char.syl
 	val = switch var
 		when '$sylstart' then syl.start_time
 		when '$sylend' then syl.end_time
