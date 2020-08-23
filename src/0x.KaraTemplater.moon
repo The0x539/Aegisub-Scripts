@@ -480,7 +480,9 @@ eval_inline_expr = (tenv) -> (expr) ->
 	expr = expr\sub 2, -2 -- remove the `!`s
 	func_body = "return (#{expr});"
 	func, err = load func_body, "inline expression `#{func_body}`", t, tenv
-	error err if err != nil
+	if err != nil
+		aegisub.log 0, "Syntax error in inline expression `#{func_body}`: #{err}"
+		aegisub.cancel!
 	val = func!
 	if val == nil then '' else tostring(val)
 
