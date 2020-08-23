@@ -11,6 +11,10 @@ setmetatable all_styles,
 	__index: -> true
 	__newindex: ->
 
+check_cancel = () ->
+	if aegisub.progress.is_cancelled!
+		aegisub.cancel!
+
 -- The shared global scope for all template code.
 class template_env
 	:_G, :math, :table, :string, :unicode, :tostring, :tonumber, :aegisub, :error, :karaskel, :require
@@ -110,6 +114,7 @@ parse_templates = (subs, tenv) ->
 	aegisub.progress.set 0
 
 	for i, line in ipairs subs
+		check_cancel!
 		error = error -- TODO: define local wrapper function that gives context
 
 		continue unless line.class == 'dialogue' and line.comment
@@ -393,6 +398,7 @@ populate_indices = (line) ->
 preproc_lines = (subs, meta, styles, lines) ->
 	aegisub.progress.set 0
 	for i, line in ipairs lines
+		check_cancel!
 		karaskel.preproc_line subs, meta, styles, line
 
 		line.is_blank = (#line.text_stripped == 0)
@@ -527,6 +533,7 @@ apply_mixins = (template, mixins, objs, tenv, tags, cls) ->
 			did_insert = true
 
 		for mixin in *mixins
+			check_cancel!
 			if should_eval mixin, tenv, obj, template
 				ci = if cls == 'line' then 0 else obj.ci
 				tags[ci] or= {}
@@ -555,6 +562,7 @@ apply_templates = (subs, lines, components, tenv) ->
 		for code in *components.code[cls]
 			tenv.loopctx = loopctx code
 			while not tenv.loopctx.done
+				check_cancel!
 				if should_eval code, tenv, orgobj
 					code.func!
 				tenv.loopctx\incr!
@@ -573,6 +581,7 @@ apply_templates = (subs, lines, components, tenv) ->
 			tenv.template_actor = template.template_actor
 			tenv.loopctx = loopctx template
 			while not tenv.loopctx.done
+				check_cancel!
 				if should_eval template, tenv, orgobj
 					with tenv.line = table.copy tenv.orgline
 						.comment = false
@@ -624,7 +633,11 @@ apply_templates = (subs, lines, components, tenv) ->
 
 	run_code 'once'
 
-	for orgline in *lines
+	aegisub.progress.set 0
+
+	for i, orgline in ipairs lines
+		aegisub.progress.task "Applying templates: line #{i}/#{#lines}"
+
 		tenv.orgline = orgline
 		run_code 'line'
 		run_templates 'line', orgline
@@ -649,6 +662,7 @@ apply_templates = (subs, lines, components, tenv) ->
 			tenv.char = nil
 
 		tenv.orgline = nil
+		aegisub.progress.set 100 * i / #lines
 
 -- Entry point
 main = (subs, sel, active) ->
@@ -661,15 +675,19 @@ main = (subs, sel, active) ->
 
 	tenv = template_env subs, meta, styles
 
+	check_cancel!
 	task 'Parsing templates...'
 	components, interested_styles = parse_templates subs, tenv
 
+	check_cancel!
 	task 'Removing old template output...'
 	remove_old_output subs
 
+	check_cancel!
 	task 'Collecting template input...'
 	lines = collect_template_input subs, interested_styles
 
+	check_cancel!
 	task 'Preprocessing template input...'
 	preproc_lines subs, meta, styles, lines
 
