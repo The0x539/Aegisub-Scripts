@@ -272,7 +272,22 @@ remove_old_output = (subs) ->
 		return false if line.comment
 		true
 
-	subs.delete [i for i, line in ipairs subs when is_fx line]
+	in_range = false
+	ranges = {}
+	for i, line in ipairs subs
+		check_cancel!
+		if is_fx line
+			if in_range
+				ranges[#ranges][2] = i
+			else
+				in_range = true
+				table.insert ranges, {i, i}
+		else
+			in_range = false
+
+	for i = #ranges, 1, -1
+		check_cancel!
+		subs.deleterange ranges[i][1], ranges[i][2]
 
 -- Collect all lyrics that are fed into templates.
 collect_template_input = (subs, interested_styles) ->
@@ -696,5 +711,9 @@ main = (subs, sel, active) ->
 
 	aegisub.set_undo_point 'apply karaoke template'
 
+remove_fx_main = (subs, _sel, _active) ->
+	remove_old_output subs
+	aegisub.set_undo_point 'remove generated fx'
+
 aegisub.register_macro '0x539\'s Templater', 'no description', main
-aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_old_output
+aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_fx_main
