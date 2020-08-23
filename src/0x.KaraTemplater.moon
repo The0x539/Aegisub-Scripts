@@ -675,3 +675,4 @@ main = (subs, sel, active) ->
 	aegisub.set_undo_point 'apply karaoke template'
 
 aegisub.register_macro '0x539\'s Templater', 'no description', main
+aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_old_output
