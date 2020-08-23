@@ -414,6 +414,7 @@ preproc_lines = (subs, meta, styles, lines) ->
 	aegisub.progress.set 0
 	for i, line in ipairs lines
 		check_cancel!
+		aegisub.progress.task "Preprocessing template input: line #{i}/#{#lines}"
 		karaskel.preproc_line subs, meta, styles, line
 
 		line.is_blank = (#line.text_stripped == 0)
