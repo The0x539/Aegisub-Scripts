@@ -445,10 +445,9 @@ eval_cond = (path, tenv) ->
 		else not (not cond!)
 
 -- In case of multiple (space-separated) values in the actor field, check for a match with any
-test_multi_actor = (compactors, lineactors) ->
-	lineactors = [word for word in lineactors\gmatch '[^ ]+']
-	for i, actor in ipairs lineactors
-		return true if compactors[actor]
+test_multi_actor = (interested_actors, actor_field) ->
+	for actor in actor_field\gmatch '[^ ]+'
+		return true if interested_actors[actor]
 	false
 
 -- Determine whether a component should be executed at all.
