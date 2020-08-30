@@ -444,6 +444,13 @@ eval_cond = (path, tenv) ->
 		when true, false then cond
 		else not (not cond!)
 
+-- In case of multiple (space-separated) values in the actor field, check for a match with any
+test_multi_actor = (compactors, lineactors) ->
+	lineactors = [word for word in lineactors\gmatch '[^ ]+']
+	for i, actor in ipairs lineactors
+		return true if compactors[actor]
+	false
+
 -- Determine whether a component should be executed at all.
 -- If using `loop`, runs on every iteration.
 should_eval = (component, tenv, obj, base_component) ->
@@ -459,11 +466,11 @@ should_eval = (component, tenv, obj, base_component) ->
 	
 	if actors = component.interested_actors
 		-- Actor filtering is irrelevant for `once` components.
-		return false unless actors[tenv.orgline.actor]
+		return false unless test_multi_actor actors, tenv.orgline.actor
 
 	if actors = component.interested_template_actors
 		-- Only mixins can have a `t_actor` modifier.
-		return false unless actors[base_component.template_actor]
+		return false unless test_multi_actor actors, base_component.template_actor
 
 	if component.noblank
 		-- `obj` is nil iff the component is a `once` component.
