@@ -8,7 +8,7 @@ main = (subs, sel, _) ->
 		idx1, idx2 = sel[i-1], sel[i]
 		line1, line2 = subs[idx1], subs[idx2]
 		if line1.start_time == line2.start_time and line1.end_time == line2.end_time
-			line1.text ..= line2.text
+			line1.text = line1.text\gsub(' +$', '') .. ' ' .. line2.text\gsub('^ +', '')
 			subs[idx1] = line1
 			subs.delete idx2
 
