@@ -495,6 +495,7 @@ eval_inline_var = (tenv) -> (var) ->
 		when '$sylstart' then syl.start_time
 		when '$sylend' then syl.end_time
 		when '$syldur' then syl.duration
+		when '$ldur' then tenv.orgline.duration
 		else
 			if var\sub(1, 6) == '$loop_'
 				loop_var = var\sub 7
