@@ -148,6 +148,7 @@ parse_templates = (subs, tenv) ->
 			strip_trailing_space: true
 			layer: line.layer
 			template_actor: line.actor
+			is_prefix: false
 
 			func: nil -- present on `code` lines
 			text: nil -- present on `template` and `mixin` lines
@@ -245,6 +246,11 @@ parse_templates = (subs, tenv) ->
 					unless line_type == 'template'
 						error 'The `keepspace` modifier is only valid for templates.'
 					component.strip_trailing_space = false
+				
+				when 'prefix'
+					unless line_type == 'mixin'
+						error 'The `prefix` modifier is only valid for mixins.'
+					component.is_prefix = true
 
 				else
 					error "Unhandled modifier: `#{modifier}`"
@@ -558,7 +564,7 @@ apply_mixins = (template, mixins, objs, tenv, tags, cls) ->
 		for mixin in *mixins
 			check_cancel!
 			if should_eval mixin, tenv, obj, template
-				ci = if cls == 'line' then 0 else obj.ci
+				ci = if (cls == 'line' or mixin.is_prefix) then 0 else obj.ci
 				tags[ci] or= {}
 				tag = eval_body mixin.text, tenv
 				table.insert tags[ci], tag
