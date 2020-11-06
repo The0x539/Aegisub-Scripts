@@ -63,6 +63,7 @@ processAll = (subs, sel, start) ->
 		videoFrame += 1
 	videoPosition = aegisub.ms_from_frame videoFrame
 	videoPosition -= videoPosition % 10
+	videoPosition = math.max videoPosition, 0
 
 	lines = LineCollection subs, sel, () -> true
 	lines\runCallback (_subs, line, _i) -> processLine line, start, videoPosition
