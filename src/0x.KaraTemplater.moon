@@ -532,9 +532,9 @@ eval_body = (text, tenv) ->
 -- A collection of variables to iterate over in a particular order.
 class loopctx
 	new: (component) =>
-		@vars = component.repetition_order
+		@vars = [var for var in *component.repetition_order]
 		@state = {var, 1 for var in *@vars}
-		@max = component.repetitions
+		@max = {var, max for var, max in pairs component.repetitions}
 		@done = false
 
 	incr: =>
