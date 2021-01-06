@@ -509,6 +509,9 @@ eval_inline_var = (tenv) -> (var) ->
 			elseif var\sub(1, 9) == '$maxloop_'
 				loop_var = var\sub 10
 				tenv.loopctx.max[loop_var]
+			elseif var\sub(1, 5) == '$env_'
+				loop_var = var\sub 6
+				tenv[loop_var]
 			else
 				error "Unrecognized inline variable: #{var}"
 
