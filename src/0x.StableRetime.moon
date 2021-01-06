@@ -43,15 +43,27 @@ processLine = (line, start, videoPosition) ->
 			error 'Attempted to shift line end past start of last syl'
 
 	for tag in *data\getTags {'transform', 'move'}
+		-- if these are both zero, the original tag probably omitted timestamps
+		-- this has the behavior of making the transform span the line's entire duration
+		-- this script should ensure that it spans the *original* duration
+		-- no matter which delta is nonzero, this will require making the tag's timestamps explicit
 		if tag.startTime.value == 0 and tag.endTime.value == 0
 			tag.endTime += line.duration
 
+		-- "timestamp" values, as used in all the non-\k tags that this script modifies, are relative to a line's start time
+		-- as such, to preserve tag timing, one must apply the negated start delta to all such tags
+		-- setting explicit timestamps is important, as explained above, but beyond that, the end delta should be irrelevant
 		tag.startTime -= startDelta
-		tag.endTime += endDelta
+		tag.endTime -= startDelta
 
+	-- this script can only meaningfully support 7-arg complex fade, not 2-arg simple fade
+	-- these are documented as "\fade" and "\fad" respectively, but renderers decide using argument count
+	-- assf calls them "fade" and "fade_simple", and expects \fade to be complex and \fad to be simple
+	-- it may not be ideal, but unlike renderers, automation macros are allowed to fail in cases like this
+	-- Go fix your tags before they break some other macro that's less aware of this situation.
 	for tag in *data\getTags {'fade'}
 		tag.inStartTime -= startDelta
-		tag.outStartTime -= endDelta
+		tag.outStartTime -= startDelta
 
 	data\commit!
 	line.start_time += startDelta
