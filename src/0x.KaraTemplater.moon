@@ -738,5 +738,22 @@ remove_fx_main = (subs, _sel, _active) ->
 	remove_old_output subs
 	aegisub.set_undo_point 'remove generated fx'
 
-aegisub.register_macro '0x539\'s Templater', 'no description', main
-aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_fx_main
+can_apply = (subs, _sel, _active) ->
+	for line in *subs
+		if line.comment == true and line.class == 'dialogue'
+			effect = line.effect
+			if #effect >= #'code syl'
+				word = effect\match('(%l+) ')
+				-- can't have a template that's just mixins
+				if word == 'code' or word == 'template'
+					return true
+	return false
+
+can_remove = (subs, _sel, _active) ->
+	for line in *subs
+		if line.effect == 'fx' and line.comment == false and line.class == 'dialogue'
+			return true
+	return false
+
+aegisub.register_macro '0x539\'s Templater', 'no description', main, can_apply
+aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_fx_main, can_remove
