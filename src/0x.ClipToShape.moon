@@ -54,6 +54,7 @@ processAll = (subs, sel, _i) ->
 	lines = LineCollection subs, sel, () -> true
 	lines\runCallback (_subs, line, _i) -> processLine line
 	lines\replaceLines!
+	aegisub.set_undo_point 'convert clip to shape'
 
 canProcess = (subs, sel, _i) ->
 	for i in *sel

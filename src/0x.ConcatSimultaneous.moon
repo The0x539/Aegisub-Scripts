@@ -11,5 +11,6 @@ main = (subs, sel, _) ->
 			line1.text = line1.text\gsub(' +$', '') .. ' ' .. line2.text\gsub('^ +', '')
 			subs[idx1] = line1
 			subs.delete idx2
+	aegisub.set_undo_point 'concatenate simultaneous lines'
 
 aegisub.register_macro 'Concat simultaneous lines', script_description, main
