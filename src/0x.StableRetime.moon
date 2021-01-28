@@ -3,7 +3,7 @@ tr = aegisub.gettext
 export script_name = tr'Stable Retime'
 export script_description = tr'Set start/end timestamps while preserving kara/transform timing'
 export script_author = 'The0x539'
-export script_version = '0.1.0'
+export script_version = '0.2.0'
 export script_namespace = '0x.StableRetime'
 
 DependencyControl = require 'l0.DependencyControl'
