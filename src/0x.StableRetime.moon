@@ -3,7 +3,7 @@ tr = aegisub.gettext
 export script_name = tr'Stable Retime'
 export script_description = tr'Set start/end timestamps while preserving kara/transform timing'
 export script_author = 'The0x539'
-export script_version = '0.2.0'
+export script_version = '0.2.1'
 export script_namespace = '0x.StableRetime'
 
 DependencyControl = require 'l0.DependencyControl'
@@ -25,6 +25,10 @@ rec = DependencyControl {
 	}
 }
 LineCollection, ASSFoundation = rec\requireModules!
+
+check_cancel = () ->
+	if aegisub.progress.is_cancelled!
+		aegisub.cancel!
 
 processLine = (line, start, videoPosition) ->
 	startDelta = if start then videoPosition - line.start_time else 0
@@ -75,6 +79,12 @@ msFromFrame = (frame) ->
 	cs = math.floor(cs + 0.5)
 	return cs * 10
 
+doCb = (lines, cb) ->
+	lines\runCallback (lines, line, i) ->
+		check_cancel!
+		cb line
+		aegisub.progress.set 100 * (i / #lines)
+
 processAll = (subs, sel, start) ->
 	videoFrame = aegisub.project_properties!.video_position
 	if not start
@@ -82,7 +92,7 @@ processAll = (subs, sel, start) ->
 	videoPosition = msFromFrame videoFrame
 
 	lines = LineCollection subs, sel, () -> true
-	lines\runCallback (_subs, line, _i) -> processLine line, start, videoPosition
+	doCb lines, (line) -> processLine line, start, videoPosition
 	lines\replaceLines!
 
 splitAll = (subs, sel, before) ->
@@ -91,11 +101,14 @@ splitAll = (subs, sel, before) ->
 	sel_a = {}
 	sel_b = {}
 
+	aegisub.progress.task 'Duplicating lines'
+
 	-- this and similar variables are indices into `sel`
 	chunkStart = 1
 	-- how many lines we've inserted to the left of where we're currently working
 	offset = 0
 	while chunkStart <= #sel
+		check_cancel!
 		-- determine where this chunk ends
 		chunkEnd = chunkStart
 		while sel[chunkEnd + 1] == sel[chunkEnd] + 1
@@ -112,6 +125,8 @@ splitAll = (subs, sel, before) ->
 
 			subs.insert insertionIdx, subs[lineIdx]
 
+			aegisub.progress.set 100 * (#sel_a / #sel)
+
 		-- update offset and move on to next chunk
 		offset += chunkLen
 		chunkStart += chunkLen
@@ -121,12 +136,14 @@ splitAll = (subs, sel, before) ->
 		videoFrame += 1
 	videoPosition = msFromFrame videoFrame
 
+	aegisub.progress.task 'Retiming "before" lines'
 	leftLines = LineCollection subs, sel_a, () -> true
-	leftLines\runCallback (_, line, _i) -> processLine line, false, videoPosition
+	doCb leftLines, (line) -> processLine line, false, videoPosition
 	leftLines\replaceLines!
 
+	aegisub.progress.task 'Retiming "after" lines'
 	rightLines = LineCollection subs, sel_b, () -> true
-	rightLines\runCallback (_, line, _i) -> processLine line, true, videoPosition
+	doCb rightLines, (line) -> processLine line, true, videoPosition
 	rightLines\replaceLines!
 
 	return sel_b
