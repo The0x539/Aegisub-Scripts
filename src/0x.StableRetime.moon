@@ -69,18 +69,17 @@ processLine = (line, start, videoPosition) ->
 	line.start_time += startDelta
 	line.end_time += endDelta
 
-posFromFrame = (videoFrame) ->
-	-- TODO: match aegi in how this seems to work
-	videoPosition = aegisub.ms_from_frame videoFrame
-	videoPosition -= videoPosition % 10
-	videoPosition = math.max videoPosition, 0
-	videoPosition
+msFromFrame = (frame) ->
+	ms = aegisub.ms_from_frame frame
+	cs = ms / 10
+	cs = math.floor(cs + 0.5)
+	return cs * 10
 
 processAll = (subs, sel, start) ->
 	videoFrame = aegisub.project_properties!.video_position
 	if not start
 		videoFrame += 1
-	videoPosition = posFromFrame videoFrame
+	videoPosition = msFromFrame videoFrame
 
 	lines = LineCollection subs, sel, () -> true
 	lines\runCallback (_subs, line, _i) -> processLine line, start, videoPosition
@@ -120,7 +119,7 @@ splitAll = (subs, sel, before) ->
 	videoFrame = aegisub.project_properties!.video_position
 	if not before
 		videoFrame += 1
-	videoPosition = posFromFrame videoFrame
+	videoPosition = msFromFrame videoFrame
 
 	leftLines = LineCollection subs, sel_a, () -> true
 	leftLines\runCallback (_, line, _i) -> processLine line, false, videoPosition
