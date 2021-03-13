@@ -86,6 +86,9 @@ class template_env
 				if @syl == nil and @char != nil
 					@syl = @char
 					patched_syl = true
+				elseif @syl == nil and @word != nil
+					@syl = @word
+					patched_syl = true
 				if @line == nil and @orgline != nil
 					@line = @orgline
 					patched_line = true
@@ -323,55 +326,63 @@ preproc_syls = (line) ->
 -- Generate word objects resembling the syl objects karaskel makes.
 preproc_words = (line) ->
 	line.words = {}
-	current_word = {syls: {}}
+	current_word = {chars: {}}
 
-	local seen_space
+	local seen_space, only_space
 	seen_space = false
+	only_space = true
 
-	for syl in *line.syls
-		if #syl.prespace > 0 and #line.words > 0
+	for char in *line.chars
+		if char.is_space and #line.words > 0
 			seen_space = true
 
-		if seen_space and not syl.is_space
+		if seen_space and not char.is_space and not only_space
 			table.insert line.words, current_word
-			current_word = {syls: {}}
+			current_word = {chars: {}}
 			seen_space = false
+			only_space = true
 
-		syl.word = current_word
-		table.insert current_word.syls, syl
+		char.word = current_word
+		table.insert current_word.chars, char
 
-		if syl.is_space or #syl.postspace > 0
+		if char.is_space
 			seen_space = true
+		else
+			seen_space = false
+			only_space = false
 
-	if #line.syls > 0
-		assert #current_word.syls > 0, 'there should always be a word left over when the loop ends'
+	if #line.chars > 0
+		assert #current_word.chars > 0, 'there should always be a word left over when the loop ends'
 		table.insert line.words, current_word
 
 	for i, word in ipairs line.words
 		with word
-			first_syl = .syls[1]
-			last_syl = .syls[#.syls]
+			-- we want spaces to be a part of the text, but not contribute to metrics
+			wchars = [char for char in *.chars when not char.is_space]
+			first_char = wchars[1]
+			last_char = wchars[#wchars]
 
-			.text = table.concat [syl.text for syl in *.syls]
-			.text_stripped = table.concat [syl.text_stripped for syl in *.syls]
-			.kdur = 0
+			.text = table.concat [char.text for char in *.chars]
+			.text_stripped = table.concat [char.text_stripped for char in *.chars]
+			-- being a sibling of syl, kdur might not make sense if syls span words
+			-- .kdur = 0
 			.line = line
 			.i = i
-			.prespace = first_syl.prespace
-			.postspace = last_syl.postspace
+			pre, post = .text_stripped\match("(%s*)%S+(%s*)$")
+			.prespace = pre or ''
+			.postspace = post or ''
 			.text_spacestripped = .text_stripped\gsub('^[ \t]*', '')\gsub('[ \t]*$', '')
 			.width = 0
 			.height = 0
-			.prespacewidth = first_syl.prespacewidth
-			.postspacewidth = last_syl.postspacewidth
-			.left = first_syl.left
-			.right = last_syl.right
+			.prespacewidth = aegisub.text_extents line.styleref, .prespace
+			.postspacewidth = aegisub.text_extents line.styleref, .postspace
+			.left = first_char.left
+			.right = last_char.right
 			.center = (.left + .right) / 2
 
-			for syl in *.syls
-				.kdur += syl.kdur
-				.width += syl.width
-				.height = math.max .height, syl.height
+			for char in *wchars
+				.width += char.width
+				.height = math.max .height, char.height
 
 			.is_blank = (#.text_stripped == 0)
 			.is_space = (#.text_spacestripped == 0 and not .is_blank)
@@ -381,44 +392,48 @@ preproc_chars = (line) ->
 	line.chars = {}
 	i = 1
 	left = 0
-	for word in *line.words
-		word.chars = {}
-		for syl in *word.syls
-			syl.chars = {}
-			for ch in unicode.chars syl.text_stripped
-				char = {:syl, :word, :line, :i}
-				char.text = ch
-				char.is_space = (ch == ' ' or ch == '\t') -- matches karaskel behavior
-				char.chars = {char}
+	for syl in *line.syls
+		syl.chars = {}
+		for ch in unicode.chars syl.text_stripped
+			char = {:syl, :line, :i}
+			char.text = ch
+			char.is_space = (ch == ' ' or ch == '\t') -- matches karaskel behavior
+			char.chars = {char}
 
-				char.width, char.height, char.descent, _ = aegisub.text_extents line.styleref, ch
-				char.left = left
-				char.center = left + char.width/2
-				char.right = left + char.width
+			char.width, char.height, char.descent, _ = aegisub.text_extents line.styleref, ch
+			char.left = left
+			char.center = left + char.width/2
+			char.right = left + char.width
 
-				left += char.width
+			left += char.width
 
-				table.insert syl.chars, char
-				table.insert word.chars, char
-				table.insert line.chars, char
+			table.insert syl.chars, char
+			table.insert line.chars, char
 
-				i += 1
+			i += 1
 
 	-- TODO: more karaskel-esque info for char objects
 
 -- Give all objects within a line information about their position in terms of words, syls, and chars.
 populate_indices = (line) ->
-	wi, si, ci = 1, 1, 1
-	line.wi, line.si, line.ci = wi, si, ci
+	line.wi, line.si, line.ci = 1, 1, 1
+
+	wi, ci = 1, 1
 	for word in *line.words
-		word.wi, word.si, word.ci = wi, si, ci
-		for syl in *word.syls
-			syl.wi, syl.si, syl.ci = wi, si, ci
-			for char in *syl.chars
-				char.wi, char.si, char.ci = wi, si, ci
-				ci += 1
-			si += 1
+		-- TODO: figure out how to give words syl-indices? might not be reasonably possible
+		word.wi, word.ci = wi, ci
+		for char in *word.chars
+			char.wi, char.ci = wi, ci
+			ci += 1
 		wi += 1
+
+	si, ci = 1, 1
+	for syl in *line.syls
+		syl.wi, syl.si, syl.ci = wi, si, ci
+		for char in *syl.chars
+			char.si = si
+			ci += 1
+		si += 1
 
 -- Populate lines with extra information necessary for template evaluation.
 -- Includes both karaskel preprocessing and some additional custom data.
@@ -433,8 +448,8 @@ preproc_lines = (subs, meta, styles, lines) ->
 		line.is_space = (line.text_stripped\find('[^ \t]') == nil)
 
 		preproc_syls line
-		preproc_words line
 		preproc_chars line
+		preproc_words line
 		populate_indices line
 
 		aegisub.progress.set 100 * i / #lines
@@ -629,7 +644,7 @@ apply_templates = (subs, lines, components, tenv) ->
 						.chars = orgobj.chars
 						.words, .syls = switch cls
 							when 'line' then .words, .syls
-							when 'word' then {orgobj}, orgobj.syls
+							when 'word' then {orgobj}, nil
 							when 'syl' then nil, {orgobj}
 							when 'char' then nil, nil
 
@@ -647,7 +662,8 @@ apply_templates = (subs, lines, components, tenv) ->
 
 					prefix = eval_body template.text, tenv
 					mixin_classes = switch cls
-						when 'line', 'word' then {'line', 'word', 'syl', 'char'}
+						when 'line' then {'line', 'word', 'syl', 'char'}
+						when 'word' then {'line', 'word', 'char'}
 						when 'syl' then {'line', 'syl', 'char'}
 						when 'char' then {'line', 'char'}
 
