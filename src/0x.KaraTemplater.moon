@@ -358,9 +358,9 @@ preproc_words = (line) ->
 	for i, word in ipairs line.words
 		with word
 			-- we want spaces to be a part of the text, but not contribute to metrics
-			wchars = [char for char in *.chars when not char.is_space]
-			first_char = wchars[1]
-			last_char = wchars[#wchars]
+			.wchars = [char for char in *.chars when not char.is_space]
+			first_char = .wchars[1]
+			last_char = .wchars[#.wchars]
 
 			.text = table.concat [char.text for char in *.chars]
 			.text_stripped = table.concat [char.text_stripped for char in *.chars]
@@ -380,7 +380,7 @@ preproc_words = (line) ->
 			.right = last_char.right
 			.center = (.left + .right) / 2
 
-			for char in *wchars
+			for char in *.wchars
 				.width += char.width
 				.height = math.max .height, char.height
 
