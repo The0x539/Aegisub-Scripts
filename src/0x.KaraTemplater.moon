@@ -1,9 +1,6 @@
 require 'karaskel'
 
-USE_KARAOK = true
-local karaOK
-if USE_KARAOK
-	karaOK = require 'ln.kara'
+USE_KARAOK, karaOK = pcall require, 'ln.kara'
 
 -- A magic table that is interested in every style.
 all_styles = {} 
