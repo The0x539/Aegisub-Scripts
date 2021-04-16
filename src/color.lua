@@ -125,16 +125,40 @@ local function interpolate(t, a1, b1, c1, a2, b2, c2)
 	return a, b, c
 end
 
-local function parse_ass(c) -- "&H3F7F9F&"
-	local b = c:sub(3,4)
-	local g = c:sub(5,6)
-	local r = c:sub(7,8)
-	
-	return tonumber(r, 16), tonumber(g, 16), tonumber(b, 16)
+local function round(n)
+	return math.floor(n + 0.5)
+end
+
+-- parse_ass helper function
+-- sometimes you really wonder why someone used a signed integer
+local function u32_from_f64(n)
+	n = math.max(n, 0)
+	n = math.min(n, 0xFFFFFFFF)
+	n = round(n)
+	return n
+end
+
+-- behavior is reasonably close to that of libass
+-- quite possibly overengineered
+local function parse_ass(c)
+	-- skip *specific* leading garbage
+	c = c:gsub('^[&H]*', '')
+
+	-- this part specifically does not match the libass implementation.
+	-- tonumber rejects (some) trailing garbage, but ass_strtod ignores it
+	c = c:match('^[0-9A-Fa-f]*')
+
+	local rgb = u32_from_f64(tonumber(c, 16) or 0)
+
+	local bit = require('bit')
+	local r = bit.rshift(bit.band(rgb, 0x000000FF), 0)
+	local g = bit.rshift(bit.band(rgb, 0x0000FF00), 8)
+	local b = bit.rshift(bit.band(rgb, 0x00FF0000), 16)
+	return r, g, b
 end
 
 local function fmt_ass(r, g, b)
-	r, g, b = math.floor(r+0.5), math.floor(g+0.5), math.floor(b+0.5)
+	r, g, b = round(r), round(g), round(b)
 	return ("&H%02X%02X%02X&"):format(b, g, r)
 end
 
