@@ -37,6 +37,9 @@ util = (tenv) -> {
 
 		-- A boolean with a truth probability of p.
 		bool: (p=0.5) -> math.random! < p
+
+		-- Either of two things, with p chance of picking the first.
+		choice: (a, b, p) -> if tenv.util.rand.bool p then a else b
 	}
 }
 
