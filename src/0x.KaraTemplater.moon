@@ -157,6 +157,7 @@ parse_templates = (subs, tenv) ->
 			interested_styles: {[line.style]: true}
 			interested_layers: nil
 			interested_actors: nil
+			disinterested_actors: nil
 			interested_template_actors: nil
 			repetitions: {}
 			repetition_order: {}
@@ -243,13 +244,14 @@ parse_templates = (subs, tenv) ->
 					component.interested_layers or= {}
 					component.interested_layers[layer] = true
 
-				when 'actor'
+				when 'actor', 'noactor'
 					if classifier == 'once'
-						error 'The `actor` modifier is invalid for `once` components.'
+						error "The `#{modifier}` modifier is invalid for `once` components."
 					actor = modifiers[j]
 					j += 1
-					component.interested_actors or= {}
-					component.interested_actors[actor] = true
+					field = if modifier == 'noactor' then 'disinterested_actors' else 'interested_actors'
+					component[field] or= {}
+					component[field][actor] = true
 
 				when 't_actor'
 					unless line_type == 'mixin'
@@ -512,6 +514,9 @@ should_eval = (component, tenv, obj, base_component) ->
 	if actors = component.interested_actors
 		-- Actor filtering is irrelevant for `once` components.
 		return false unless test_multi_actor actors, tenv.orgline.actor
+
+	if actors = component.disinterested_actors
+		return false if test_multi_actor actors, tenv.orgline.actor
 
 	if actors = component.interested_template_actors
 		-- Only mixins can have a `t_actor` modifier.
