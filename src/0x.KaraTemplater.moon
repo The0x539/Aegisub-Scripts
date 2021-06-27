@@ -1,6 +1,7 @@
 require 'karaskel'
 
 USE_KARAOK, karaOK = pcall require, 'ln.kara'
+USE_COLOR, colorlib = pcall require, '0x.color'
 
 -- A magic table that is interested in every style.
 all_styles = {} 
@@ -131,6 +132,11 @@ class template_env
 			@ln.tag.pos = monkey_patch @ln.tag.pos
 			@ln.tag.move = monkey_patch @ln.tag.move
 
+		if USE_COLOR
+			@colorlib = colorlib
+
+		-- TODO: provide a bunch of stub functions/tables that tell the user what to install
+		if USE_KARAOK and USE_COLOR
 			@util = util @
 
 		@retime = _retime @
