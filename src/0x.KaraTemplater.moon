@@ -12,7 +12,7 @@ check_cancel = () ->
 	if aegisub.progress.is_cancelled!
 		aegisub.cancel!
 
-util = (tenv) ->
+util = (tenv) -> {
 	tag_or_default: (tag, default) ->
 		value = karaOK.line.tag tag
 		if value == '' then default else value
@@ -28,7 +28,7 @@ util = (tenv) ->
 
 		(x - x0) / (x1 - x0)
 
-	rand:
+	rand: {
 		-- Either -1 or 1, randomly.
 		sign: -> math.random(0, 1) * 2 - 1
 
@@ -37,6 +37,8 @@ util = (tenv) ->
 
 		-- A boolean with a truth probability of p.
 		bool: (p=0.5) -> math.random! < p
+	}
+}
 
 -- The shared global scope for all template code.
 class template_env
@@ -94,6 +96,7 @@ class template_env
 			-- BUG: there are unaccounted-for situations in which .done should be set to true
 			unless .state[var] > .max[var]
 				.done = false
+		return -- returns the loopctx otherwise, which we don't want
 
 	_set = => (key, val) -> @[key] = val
 
