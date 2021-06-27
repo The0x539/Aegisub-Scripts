@@ -73,7 +73,7 @@ class template_env
 				return
 			else error "Unknown retime mode: #{mode}", 2
 
-		orig_start = @line.start_time
+		orig_start = @orgline.start_time
 		@line.start_time = orig_start + start_base + start_offset
 		@line.end_time = orig_start + end_base + end_offset
 		@line.duration = @line.end_time - @line.start_time
