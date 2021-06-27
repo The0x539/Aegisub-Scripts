@@ -558,10 +558,10 @@ eval_inline_var = (tenv) -> (var) ->
 		else
 			if var\sub(1, 6) == '$loop_'
 				loop_var = var\sub 7
-				tenv.loopctx.state[loop_var]
+				tenv.loopctx.state[loop_var] or 1
 			elseif var\sub(1, 9) == '$maxloop_'
 				loop_var = var\sub 10
-				tenv.loopctx.max[loop_var]
+				tenv.loopctx.max[loop_var] or 1
 			elseif var\sub(1, 5) == '$env_'
 				loop_var = var\sub 6
 				tenv[loop_var]
