@@ -32,6 +32,16 @@ util = (tenv) ->
 
 		(x - x0) / (x1 - x0)
 
+	rand:
+		-- Either -1 or 1, randomly.
+		sign: -> math.random(0, 1) * 2 - 1
+
+		-- A random entry from a list.
+		item: (list) -> list[math.random 1, #list]
+
+		-- A boolean with a truth probability of p.
+		bool: (p=0.5) -> math.random! < p
+
 -- The shared global scope for all template code.
 class template_env
 	:_G, :math, :table, :string, :unicode, :tostring, :tonumber, :aegisub, :error, :karaskel, :require
