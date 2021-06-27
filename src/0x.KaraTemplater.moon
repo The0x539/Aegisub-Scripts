@@ -12,6 +12,26 @@ check_cancel = () ->
 	if aegisub.progress.is_cancelled!
 		aegisub.cancel!
 
+util = (tenv) ->
+	tag_or_default: (tag, default) ->
+		value = karaOK.line.tag tag
+		if value == '' then default else value
+
+	fad: (t_in, t_out) -> tag_or_default {'fad', 'fade'}, "\\fad(#{t_in},#{t_out})"
+
+	-- Name subject to change if someone thinks of something more meaningful
+	-- (an alias will be provided)
+	cx: (obj, objs, field) ->
+		obj or= tenv.char
+		objs or= tenv.orgline.chars
+		field or= 'center'
+
+		x = obj[field]
+		x0 = objs[1][field]
+		x1 = objs[#objs][field]
+
+		(x - x0) / (x1 - x0)
+
 -- The shared global scope for all template code.
 class template_env
 	:_G, :math, :table, :string, :unicode, :tostring, :tonumber, :aegisub, :error, :karaskel, :require
@@ -96,6 +116,8 @@ class template_env
 
 			@ln.tag.pos = monkey_patch @ln.tag.pos
 			@ln.tag.move = monkey_patch @ln.tag.move
+
+			@util = util @
 
 		@retime = _retime @
 		@relayer = _relayer @
