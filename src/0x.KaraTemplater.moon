@@ -17,7 +17,7 @@ util = (tenv) -> {
 		value = karaOK.line.tag tag
 		if value == '' then default else value
 
-	fad: (t_in, t_out) -> tag_or_default {'fad', 'fade'}, "\\fad(#{t_in},#{t_out})"
+	fad: (t_in, t_out) -> tenv.util.tag_or_default {'fad', 'fade'}, "\\fad(#{t_in},#{t_out})"
 
 	-- Name subject to change if someone thinks of something more meaningful
 	-- (an alias will be provided)
