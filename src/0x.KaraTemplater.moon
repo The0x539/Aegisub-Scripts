@@ -21,11 +21,7 @@ util = (tenv) ->
 
 	-- Name subject to change if someone thinks of something more meaningful
 	-- (an alias will be provided)
-	cx: (obj, objs, field) ->
-		obj or= tenv.char
-		objs or= tenv.orgline.chars
-		field or= 'center'
-
+	cx: (obj=tenv.char, objs=tenv.orgline.chars, field='center') ->
 		x = obj[field]
 		x0 = objs[1][field]
 		x1 = objs[#objs][field]
@@ -54,10 +50,8 @@ class template_env
 		aegisub.log '\n'
 
 	-- Given a self object, returns an actual retime function, which cannot require a self parameter
-	_retime = => (mode, start_offset, end_offset) ->
+	_retime = => (mode, start_offset=0, end_offset=0) ->
 		return if @line == nil
-		start_offset or= 0
-		end_offset or= 0
 		syl = @syl
 		if syl == nil and @char != nil
 			syl = @char.syl
@@ -95,7 +89,6 @@ class template_env
 			-- BUG: there are unaccounted-for situations in which .done should be set to true
 			unless .state[var] > .max[var]
 				.done = false
-		''
 
 	_set = => (key, val) -> @[key] = val
 
