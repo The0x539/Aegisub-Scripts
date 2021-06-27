@@ -66,6 +66,11 @@ class template_env
 			when 'syl2end'   then syl.end_time, @orgline.duration
 			when 'presyl2postline' then syl.start_time, @orgline.duration
 			when 'preline2postsyl' then 0, syl.end_time
+			when 'delta'
+				@line.start_time += start_offset
+				@line.end_time += end_offset
+				@line.duration = @line.end_time - @line.start_time
+				return
 			when 'set', 'abs'
 				@line.start_time = start_offset
 				@line.end_time = end_offset
