@@ -29,6 +29,20 @@ util = (tenv) -> {
 
 		(x - x0) / (x1 - x0)
 
+	lerp: (t, v0, v1) -> (v1 * t) + (v0 * (1 - t))
+
+	gbc: (c1, c2, interp) ->
+		ctype = type c1
+		if ctype != type c2
+			error "gbc type mismatch: #{ctype} / #{type c2}"
+
+		interp or= switch ctype
+			when 'number' then tenv.util.lerp
+			when 'string' then tenv.colorlib.interp_lch --a fallible assumption. revisit.
+			else error "unknown gbc type: #{ctype}. please pass a custom interpolation function."
+
+		interp tenv.util.cx!, c1, c2
+
 	rand: {
 		-- Either -1 or 1, randomly.
 		sign: -> math.random(0, 1) * 2 - 1
