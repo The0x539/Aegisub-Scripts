@@ -57,6 +57,38 @@ util = (tenv) -> {
 		c1, c2 = cs[math.ceil t], cs[1 + math.ceil t]
 		tenv.util.gbc c1, c2, interp, t % 1
 
+	make_grad: (v1, v2, dv=1, vertical=true, loopname='grad', extend=true) ->
+		tenv.maxloop loopname, math.ceil((v2 - v1) / dv)
+
+		loopctx, meta = tenv.loopctx, tenv.meta
+		loopval = loopctx.state[loopname]
+
+		w1 = v1 + dv * (loopval - 1)
+		w2 = v1 + dv * loopval
+		if extend
+			if loopval == 1 then w1 = 0
+			if loopval == loopctx.max[loopname]
+				w2 = if vertical then meta.res_y else meta.res_x
+		else
+			w2 = math.min w2, v2
+
+		-- TODO:(?) some super overkill thing where you can specify all intended usages of this gradient,
+		-- then it checks if the "next step" will be the same.
+		-- while so, "take an extra step" in the tenv loop and extend the clip accordingly
+		-- basically an ahead-of-time "combine gradient lines" action
+
+		ftoa = tenv.util.ftoa
+		if vertical
+			"\\clip(0,#{ftoa w1},#{meta.res_x},#{ftoa w2})"
+		else
+			"\\clip(#{ftoa w1},0,#{ftoa w2},#{meta.res_y})"
+
+	get_grad: (c1, c2, interp, loopname='grad') ->
+		interp or= guess_interp tenv, c1, c2
+		-- TODO: expose this calculation somewhere, because it's handy
+		t = (tenv.loopctx.state[loopname] - 1) / (tenv.loopctx.max[loopname] - 1)
+		interp t, c1, c2
+
 	ftoa: (n, digits=2) ->
 		assert digits >= 0 and digits == math.floor digits
 		if n == math.floor n
