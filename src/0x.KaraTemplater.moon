@@ -105,8 +105,8 @@ class template_env
 
 	_relayer = => (new_layer) -> @line.layer = new_layer
 
-	_maxloop = => (var, val) ->
-		with @loopctx
+	_maxloop = (name) => (var, val) ->
+		with @[name]
 			if .max[var] == nil
 				table.insert .vars, var
 			.max[var] = val
@@ -155,7 +155,8 @@ class template_env
 
 		@retime = _retime @
 		@relayer = _relayer @
-		@maxloop = _maxloop @
+		@maxloop = _maxloop @, 'loopctx'
+		@maxmloop = _maxloop @, 'mloopctx'
 		@set = _set @
 
 -- Iterate over all sub lines, collecting those that are code chunks, templates, or mixins.
@@ -576,21 +577,27 @@ eval_inline_var = (tenv) -> (var) ->
 		syl = tenv.syl
 	elseif tenv.char
 		syl = tenv.char.syl
+
+	strip_prefix = (str, prefix) ->
+		len = prefix\len!
+		if str\sub(1, len) == prefix then str\sub(len + 1) else nil
+
 	val = switch var
 		when '$sylstart' then syl.start_time
 		when '$sylend' then syl.end_time
 		when '$syldur' then syl.duration
 		when '$ldur' then tenv.orgline.duration
 		else
-			if var\sub(1, 6) == '$loop_'
-				loop_var = var\sub 7
-				tenv.loopctx.state[loop_var] or 1
-			elseif var\sub(1, 9) == '$maxloop_'
-				loop_var = var\sub 10
-				tenv.loopctx.max[loop_var] or 1
-			elseif var\sub(1, 5) == '$env_'
-				loop_var = var\sub 6
-				tenv[loop_var]
+			if name = strip_prefix var, '$loop_'
+				tenv.loopctx.state[name] or 1
+			elseif name = strip_prefix var, '$maxloop_'
+				tenv.loopctx.max[name] or 1
+			elseif name = strip_prefix var, '$mloop_'
+				tenv.mloopctx.state[name] or 1
+			elseif name = strip_prefix var, '$maxmloop_'
+				tenv.mloopctx.max[name] or 1
+			elseif name = strip_prefix var, '$env_'
+				tenv[name] -- this turned out to be less useful than I expected
 			else
 				error "Unrecognized inline variable: #{var}"
 
@@ -644,12 +651,16 @@ apply_mixins = (template, mixins, objs, tenv, tags, cls) ->
 			did_insert = true
 
 		for mixin in *mixins
-			check_cancel!
-			if should_eval mixin, tenv, obj, template
-				ci = if (cls == 'line' or mixin.is_prefix) then 0 else obj.ci
-				tags[ci] or= {}
-				tag = eval_body mixin.text, tenv
-				table.insert tags[ci], tag
+			tenv.mloopctx = loopctx mixin
+			while not tenv.mloopctx.done
+				check_cancel!
+				if should_eval mixin, tenv, obj, template
+					ci = if (cls == 'line' or mixin.is_prefix) then 0 else obj.ci
+					tags[ci] or= {}
+					tag = eval_body mixin.text, tenv
+					table.insert tags[ci], tag
+				tenv.mloopctx\incr!
+			tenv.mloopctx = nil
 
 		if did_insert
 			tenv[cls] = nil
