@@ -31,7 +31,7 @@ util = (tenv) -> {
 
 	lerp: (t, v0, v1) -> (v1 * t) + (v0 * (1 - t))
 
-	gbc: (c1, c2, interp) ->
+	gbc: (c1, c2, interp, t=tenv.util.cx!) ->
 		ctype = type c1
 		if ctype != type c2
 			error "gbc type mismatch: #{ctype} / #{type c2}"
@@ -41,7 +41,18 @@ util = (tenv) -> {
 			when 'string' then tenv.colorlib.interp_lch --a fallible assumption. revisit.
 			else error "unknown gbc type: #{ctype}. please pass a custom interpolation function."
 
-		interp tenv.util.cx!, c1, c2
+		interp t, c1, c2
+
+	multi_gbc: (cs, interp, t=tenv.util.cx!) ->
+		if t == 0 then return cs[1]
+		if t == 1 then return cs[#cs]
+
+		-- Without these parens, moonc outputs incorrect Lua.
+		-- This is deeply disturbing.
+		t *= (#cs - 1) 
+
+		c1, c2 = cs[math.ceil t], cs[1 + math.ceil t]
+		tenv.util.gbc c1, c2, interp, t % 1
 
 	rand: {
 		-- Either -1 or 1, randomly.
