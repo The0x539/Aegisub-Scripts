@@ -13,6 +13,17 @@ check_cancel = () ->
 	if aegisub.progress.is_cancelled!
 		aegisub.cancel!
 
+-- Try to determine an apppropriate interpolation function for the two values provided.
+guess_interp = (tenv, c1, c2) ->
+	ctype = type c1
+	if ctype != type c2
+		error "attempt to interpolate mismatched types: #{ctype} / #{type c2}"
+
+	switch ctype
+		when 'number' then tenv.util.lerp
+		when 'string' then tenv.colorlib.interp_lch --a fallible assumption. revisit.
+		else error "unknown gbc type: #{ctype}. please pass a custom interpolation function."
+
 util = (tenv) -> {
 	tag_or_default: (tag, default) ->
 		value = karaOK.line.tag tag
@@ -32,15 +43,7 @@ util = (tenv) -> {
 	lerp: (t, v0, v1) -> (v1 * t) + (v0 * (1 - t))
 
 	gbc: (c1, c2, interp, t=tenv.util.cx!) ->
-		ctype = type c1
-		if ctype != type c2
-			error "gbc type mismatch: #{ctype} / #{type c2}"
-
-		interp or= switch ctype
-			when 'number' then tenv.util.lerp
-			when 'string' then tenv.colorlib.interp_lch --a fallible assumption. revisit.
-			else error "unknown gbc type: #{ctype}. please pass a custom interpolation function."
-
+		interp or= guess_interp tenv, c1, c2
 		interp t, c1, c2
 
 	multi_gbc: (cs, interp, t=tenv.util.cx!) ->
