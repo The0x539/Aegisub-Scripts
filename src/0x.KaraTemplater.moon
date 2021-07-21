@@ -57,6 +57,15 @@ util = (tenv) -> {
 		c1, c2 = cs[math.ceil t], cs[1 + math.ceil t]
 		tenv.util.gbc c1, c2, interp, t % 1
 
+	ftoa: (n, digits=2) ->
+		assert digits >= 0 and digits == math.floor digits
+		if n == math.floor n
+			tostring n
+		elseif digits == 0
+			tostring tenv.util.math.round n
+		else
+			"%.#{digits}f"\format(n)\gsub('(%.%d-)0+$', '%1')\gsub('%.$', '')
+
 	rand: {
 		-- Either -1 or 1, randomly.
 		sign: -> math.random(0, 1) * 2 - 1
@@ -69,6 +78,10 @@ util = (tenv) -> {
 
 		-- Either of two things, with p chance of picking the first.
 		choice: (a, b, p) -> if tenv.util.rand.bool p then a else b
+	}
+
+	math: {
+		round: (n) -> math.floor(n + 0.5)
 	}
 }
 
