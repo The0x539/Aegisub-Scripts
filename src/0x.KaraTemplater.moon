@@ -98,6 +98,22 @@ util = (tenv) -> {
 		else
 			"%.#{digits}f"\format(n)\gsub('(%.%d-)0+$', '%1')\gsub('%.$', '')
 
+	fbf: (mode='line', start_offset=0, end_offset=0, frames=1, loopname='fbf') ->
+		tenv.retime mode, start_offset, end_offset
+
+		first_frame = aegisub.frame_from_ms tenv.line.start_time
+		last_frame = aegisub.frame_from_ms tenv.line.end_time
+
+		n_frames = last_frame - first_frame
+		loop_count = math.ceil(n_frames / frames)
+		tenv.maxloop loopname, loop_count
+
+		i = tenv.loopctx.state[loopname]
+		start_time = aegisub.ms_from_frame(first_frame + (i - 1) * frames)
+		end_time = aegisub.ms_from_frame(math.min(first_frame + i * frames, last_frame))
+
+		tenv.retime 'abs', start_time, end_time
+
 	rand: {
 		-- Either -1 or 1, randomly.
 		sign: -> math.random(0, 1) * 2 - 1
