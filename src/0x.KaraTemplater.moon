@@ -1,7 +1,21 @@
 require 'karaskel'
 
-USE_KARAOK, karaOK = pcall require, 'ln.kara'
-USE_COLOR, colorlib = pcall require, '0x.color'
+try_import = (name) ->
+	success, module = pcall require, name
+	if not success
+		-- Create a dummy table that exists, but gives an informative error when accessed.
+		accessor = () ->
+			-- I cannot for the life of me figure out why no matter what value I pass
+			-- as the second argument to `error`, the log window still shows a full stack trace.
+			-- This is absurd.
+			aegisub.log 0, "This template depends on the `#{name}` module. Please install it."
+			aegisub.cancel!
+
+		module = setmetatable {}, {__index: accessor, __newindex: accessor}
+	module, success
+
+karaOK, USE_KARAOK = try_import 'ln.kara'
+colorlib, USE_COLOR = try_import '0x.color'
 
 -- A magic table that is interested in every style.
 all_styles = {} 
@@ -136,6 +150,7 @@ util = (tenv) -> {
 -- The shared global scope for all template code.
 class template_env
 	:_G, :math, :table, :string, :unicode, :tostring, :tonumber, :aegisub, :error, :karaskel, :require
+	:colorlib
 
 	printf: aegisub.log
 
@@ -221,12 +236,7 @@ class template_env
 			@ln.tag.pos = monkey_patch @ln.tag.pos
 			@ln.tag.move = monkey_patch @ln.tag.move
 
-		if USE_COLOR
-			@colorlib = colorlib
-
-		-- TODO: provide a bunch of stub functions/tables that tell the user what to install
-		if USE_KARAOK and USE_COLOR
-			@util = util @
+		@util = util @
 
 		@retime = _retime @
 		@relayer = _relayer @
