@@ -14,7 +14,7 @@ validate = (subs, sel, _) ->
 validate_single = (subs, sel, i) ->
 	#sel == 1 and sel[1] == i and validate subs, sel, i
 
-strip_hyphen = (text) -> text\gsub '^%- ?', ''
+strip = (text) -> text\gsub('^%- ?', '')\gsub('^ +', '')\gsub(' +$', '')
 
 split = (line_a) ->
 	line_b = util.copy line_a
@@ -26,8 +26,8 @@ split = (line_a) ->
 	text_a = text\sub 1, end_of_a
 	text_b = text\sub start_of_b
 
-	line_a.text = strip_hyphen text_a
-	line_b.text = strip_hyphen text_b
+	line_a.text = strip text_a
+	line_b.text = strip text_b
 	if line_a.effect == 'split'
 		line_a.effect = ''
 		line_b.effect = ''
