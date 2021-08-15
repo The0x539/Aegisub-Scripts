@@ -63,7 +63,7 @@ split_multiple = (subs, sel, active) ->
 		subs[li] = line_b
 		subs.insert li, line_a
 
-		table.insert new_selection, li + i - 1
+		--table.insert new_selection, li + i - 1
 		table.insert new_selection, li + i
 		if li <= active
 			new_active += 1
