@@ -46,17 +46,12 @@ local function LABfromXYZ(x, y, z)
 		if n > 0.008856 then
 			return math.pow(n, 1/3)
 		else
-			return (7.787 * n) + (16/116)
+			return (903.3 * n + 16) / 116
 		end
 	end
 	x, y, z = f(x), f(y), f(z)
 
-	local l
-	if y > 0.008856 then
-		l = (116 * y) - 16
-	else
-		l = 903.3 * y
-	end
+	local l = (116 * y) - 16
 	local a = 500 * (x - y)
 	local b = 200 * (y - z)
 
@@ -70,14 +65,23 @@ local function XYZfromLAB(l, a, b)
 	local x = a/500 + y
 	local z = y - b/200
 
-	local function f(n)
+	local function fxz(n)
 		if n^3 > 0.008856 then
 			return n^3
 		else
-			return (n - 16/116) / 7.787
+			return (116 * n - 16) / 903.3
 		end
 	end
-	x, y, z = f(x), f(y), f(z)
+
+	local function fy(n)
+		if n > 903.3 then
+			return ((n + 16) / 116)^3
+		else
+			return n / 903.3
+		end
+	end
+
+	x, y, z = fxz(x), fy(y), fxz(z)
 
 	return x*ref_X, y*ref_Y, z*ref_Z
 end
