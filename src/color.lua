@@ -38,7 +38,7 @@ local function RGBfromXYZ(x, y, z)
 end
 
 local function LABfromXYZ(x, y, z)
-	local Xn, Yn, Zn = 95.047, 100.000, 108.883
+	local Xn, Yn, Zn = 0.95047, 1.0, 1.08883
 
 	x, y, z = x/Xn, y/Yn, z/Zn
 
@@ -64,7 +64,7 @@ local function LABfromXYZ(x, y, z)
 end
 
 local function XYZfromLAB(l, a, b)
-	local ref_X, ref_Y, ref_Z = 95.047, 100.000, 108.883
+	local ref_X, ref_Y, ref_Z = 0.95047, 1.0, 1.08883
 
 	local y = (l + 16) / 116
 	local x = a/500 + y
