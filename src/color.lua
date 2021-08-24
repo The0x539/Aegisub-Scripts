@@ -73,15 +73,12 @@ local function XYZfromLAB(l, a, b)
 		end
 	end
 
-	local function fy(n)
-		if n > 903.3 then
-			return ((n + 16) / 116)^3
-		else
-			return n / 903.3
-		end
+	x, z = fxz(x), fxz(z)
+	if l > (903.3 * 0.008856) then
+		y = y^3
+	else
+		y = l / 903.3
 	end
-
-	x, y, z = fxz(x), fy(y), fxz(z)
 
 	return x*ref_X, y*ref_Y, z*ref_Z
 end
