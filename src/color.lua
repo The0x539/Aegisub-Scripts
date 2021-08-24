@@ -10,21 +10,17 @@ local function XYZfromRGB(r, g, b)
 	end
 	r, g, b = f(r), f(g), f(b)
 
-	r, g, b = r*100, g*100, b*100
-
-	local x = r*0.4124 + g*0.3576 + b*0.1805
-	local y = r*0.2126 + g*0.7152 + b*0.0722
-	local z = r*0.0193 + g*0.1192 + b*0.9505
+	local x = r*0.4124564 + g*0.3575761 + b*0.1804375
+	local y = r*0.2126729 + g*0.7151522 + b*0.0721750
+	local z = r*0.0193339 + g*0.1191920 + b*0.9503041
 
 	return x, y, z
 end
 
 local function RGBfromXYZ(x, y, z)
-	x, y, z = x/100, y/100, z/100
-
-	local r = x*3.2406 + y*-1.5372 + z*-0.4986
-	local g = x*-0.9689 + y*1.8758 + z*0.0415
-	local b = x*0.0557 + y*-0.2040 + z*1.0570
+	local r = x*3.2404542 + y*-1.5371385 + z*-0.4985314
+	local g = x*-0.9692660 + y*1.8760108 + z*0.0415560
+	local b = x*0.0556434 + y*-0.2040259 + z*1.0572252
 
 	local function f(n)
 		if n > 0.0031308 then
