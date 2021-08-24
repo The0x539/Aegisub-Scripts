@@ -10,21 +10,17 @@ local function XYZfromRGB(r, g, b)
 	end
 	r, g, b = f(r), f(g), f(b)
 
-	r, g, b = r*100, g*100, b*100
-
-	local x = r*0.4124 + g*0.3576 + b*0.1805
-	local y = r*0.2126 + g*0.7152 + b*0.0722
-	local z = r*0.0193 + g*0.1192 + b*0.9505
+	local x = r*0.4124564 + g*0.3575761 + b*0.1804375
+	local y = r*0.2126729 + g*0.7151522 + b*0.0721750
+	local z = r*0.0193339 + g*0.1191920 + b*0.9503041
 
 	return x, y, z
 end
 
 local function RGBfromXYZ(x, y, z)
-	x, y, z = x/100, y/100, z/100
-
-	local r = x*3.2406 + y*-1.5372 + z*-0.4986
-	local g = x*-0.9689 + y*1.8758 + z*0.0415
-	local b = x*0.0557 + y*-0.2040 + z*1.0570
+	local r = x*3.2404542 + y*-1.5371385 + z*-0.4985314
+	local g = x*-0.9692660 + y*1.8760108 + z*0.0415560
+	local b = x*0.0556434 + y*-0.2040259 + z*1.0572252
 
 	local function f(n)
 		if n > 0.0031308 then
@@ -42,7 +38,7 @@ local function RGBfromXYZ(x, y, z)
 end
 
 local function LABfromXYZ(x, y, z)
-	local Xn, Yn, Zn = 95.047, 100.000, 108.883
+	local Xn, Yn, Zn = 0.95047, 1.0, 1.08883
 
 	x, y, z = x/Xn, y/Yn, z/Zn
 
@@ -50,17 +46,12 @@ local function LABfromXYZ(x, y, z)
 		if n > 0.008856 then
 			return math.pow(n, 1/3)
 		else
-			return (7.787 * n) + (16/116)
+			return (903.3 * n + 16) / 116
 		end
 	end
 	x, y, z = f(x), f(y), f(z)
 
-	local l
-	if y > 0.008856 then
-		l = (116 * y) - 16
-	else
-		l = 903.3 * y
-	end
+	local l = (116 * y) - 16
 	local a = 500 * (x - y)
 	local b = 200 * (y - z)
 
@@ -68,20 +59,26 @@ local function LABfromXYZ(x, y, z)
 end
 
 local function XYZfromLAB(l, a, b)
-	local ref_X, ref_Y, ref_Z = 95.047, 100.000, 108.883
+	local ref_X, ref_Y, ref_Z = 0.95047, 1.0, 1.08883
 
 	local y = (l + 16) / 116
 	local x = a/500 + y
 	local z = y - b/200
 
-	local function f(n)
+	local function fxz(n)
 		if n^3 > 0.008856 then
 			return n^3
 		else
-			return (n - 16/116) / 7.787
+			return (116 * n - 16) / 903.3
 		end
 	end
-	x, y, z = f(x), f(y), f(z)
+
+	x, z = fxz(x), fxz(z)
+	if l > (903.3 * 0.008856) then
+		y = y^3
+	else
+		y = l / 903.3
+	end
 
 	return x*ref_X, y*ref_Y, z*ref_Z
 end
