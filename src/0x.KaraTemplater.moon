@@ -815,6 +815,9 @@ apply_templates = (subs, lines, components, tenv) ->
 						--	wi_offset = .words[1].wi - 1
 						--	word.i -= wi_offset for word in *.words
 
+					skipped = false
+					tenv.skip = (using skipped) -> skipped = true
+
 					prefix = eval_body template.text, tenv
 					mixin_classes = switch cls
 						when 'line' then {'line', 'word', 'syl', 'char'}
@@ -834,7 +837,10 @@ apply_templates = (subs, lines, components, tenv) ->
 						-- Less primitive than the above thing, but still primitive. Might have worst-case quadratic performance.
 						tenv.line.text = tenv.line.text\gsub ' *$', ''
 
-					subs.append tenv.line
+					unless skipped
+						subs.append tenv.line
+
+					tenv.skip = nil
 
 					tenv.line = nil
 				tenv.loopctx\incr!
