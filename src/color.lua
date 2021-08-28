@@ -190,9 +190,30 @@ local function interp_rgb(t, color_1, color_2)
 	return fmt_ass(r, g, b)
 end
 
+local fmt_rgb = fmt_ass
+
+local function fmt_xyz(x, y, z)
+	local r, g, b = RGBfromXYZ(x, y, z)
+	return fmt_ass(r, g, b)
+end
+
+local function fmt_lab(l, a, b)
+	local r, g, b = RGBfromXYZ(XYZfromLAB(l, a, b))
+	return fmt_ass(r, g, b)
+end
+
+local function fmt_lch(l, c, h)
+	local r, g, b = RGBfromXYZ(XYZfromLAB(LABfromLCH(l, c, h)))
+	return fmt_ass(r, g, b)
+end
+
 return {
 	interp_lch = interp_lch,
 	interp_lab = interp_lab,
 	interp_xyz = interp_xyz,
-	interp_rgb = interp_rgb
+	interp_rgb = interp_rgb,
+	fmt_rgb = fmt_rgb,
+	fmt_xyz = fmt_xyz,
+	fmt_lab = fmt_lab,
+	fmt_lch = fmt_lch
 }
