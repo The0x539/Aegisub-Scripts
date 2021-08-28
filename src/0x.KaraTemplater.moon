@@ -132,8 +132,20 @@ util = (tenv) -> {
 		-- Either -1 or 1, randomly.
 		sign: -> math.random(0, 1) * 2 - 1
 
-		-- A random entry from a list.
-		item: (list) -> list[math.random 1, #list]
+		-- A random entry from a list, or a random code point from a string.
+		item: (list) ->
+			if type(list) == 'string'
+				len = unicode.len list
+				idx = math.random 1, len
+				i = 1
+				for c in unicode.chars list
+					if i == idx
+						return c
+					i += 1
+
+				error 'unreachable'
+			else
+				list[math.random 1, #list]
 
 		-- A boolean with a truth probability of p.
 		bool: (p=0.5) -> math.random! < p
