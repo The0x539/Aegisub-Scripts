@@ -225,8 +225,8 @@ class template_env
 		@tenv = @
 		@subtitles = @subs
 
+		@ln = karaOK
 		if USE_KARAOK
-			@ln = karaOK
 			@ln.init @
 			-- some monkey-patching to address some execution environment differences from karaOK
 			monkey_patch = (f) -> (...) ->
