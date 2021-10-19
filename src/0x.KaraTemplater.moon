@@ -103,6 +103,17 @@ util = (tenv) -> {
 		t = (tenv.loopctx.state[loopname] - 1) / (tenv.loopctx.max[loopname] - 1)
 		interp t, c1, c2
 
+	get_multi_grad: (cs, interp, loopname='grad') ->
+		t = (tenv.loopctx.state[loopname] - 1) / (tenv.loopctx.max[loopname] - 1)
+		if t == 0 then return cs[1]
+		if t == 1 then return cs[#cs]
+
+		t *= (#cs - 1) 
+		c1, c2 = cs[math.ceil t], cs[1 + math.ceil t]
+
+		interp or= guess_interp tenv, c1, c2
+		interp t % 1, c1, c2
+
 	ftoa: (n, digits=2) ->
 		assert digits >= 0 and digits == math.floor digits
 		if n == math.floor n
