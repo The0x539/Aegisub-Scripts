@@ -487,6 +487,12 @@ preproc_syls = (line) ->
 			.is_blank = (#.text_stripped == 0)
 			.is_space = (#.text_spacestripped == 0 and not .is_blank)
 
+			-- This pattern is flawed, but matches karaskel's treatment
+			if .inline_fx != '' and .inline_fx == .text\match('%{.*\\%-([^}\\]+)')
+				.syl_fx = .inline_fx
+			else
+				.syl_fx = ''
+
 -- Generate word objects resembling the syl objects karaskel makes.
 preproc_words = (line) ->
 	line.words = {}
