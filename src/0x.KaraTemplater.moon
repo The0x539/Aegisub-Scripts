@@ -35,8 +35,13 @@ guess_interp = (tenv, c1, c2) ->
 
 	switch ctype
 		when 'number' then tenv.util.lerp
-		when 'string' then tenv.colorlib.interp_lch --a fallible assumption. revisit.
-		else error "unknown gbc type: #{ctype}. please pass a custom interpolation function."
+		when 'string'
+			-- the assumptions made in this branch are fallible and subject to future improvement
+			if c1\match '&H[0-9a-fA-F][0-9a-fA-F]&'
+				tenv.colorlib.interp_alpha
+			else
+				tenv.colorlib.interp_lch
+		else error "unknown gradient type: #{ctype}. please pass a custom interpolation function."
 
 util = (tenv) -> {
 	tag_or_default: (tag, default) ->
