@@ -126,7 +126,7 @@ local function round(n)
 	return math.floor(n + 0.5)
 end
 
--- parse_ass helper function
+-- parse_ass_color helper function
 -- sometimes you really wonder why someone used a signed integer
 local function u32_from_f64(n)
 	n = math.max(n, 0)
@@ -135,9 +135,16 @@ local function u32_from_f64(n)
 	return n
 end
 
+local function u8_from_f64(n)
+	n = math.max(n, 0)
+	n = math.min(n, 0xFF)
+	n = round(n)
+	return n
+end
+
 -- behavior is reasonably close to that of libass
 -- quite possibly overengineered
-local function parse_ass(c)
+local function parse_ass_color(c)
 	-- skip *specific* leading garbage
 	c = c:gsub('^[&H]*', '')
 
@@ -154,57 +161,81 @@ local function parse_ass(c)
 	return r, g, b
 end
 
-local function fmt_ass(r, g, b)
+local function parse_ass_alpha(a)
+	if type(a) == 'number' then
+		return a
+	end
+
+	a = a:gsub('^[&H]*', '')
+	a = a:match('^[0-9A-Fa-f]*')
+
+	return u8_from_f64(tonumber(a, 16) or 0)
+end
+
+local function fmt_ass_color(r, g, b)
 	r, g, b = round(r), round(g), round(b)
 	return ("&H%02X%02X%02X&"):format(b, g, r)
 end
 
+local function fmt_ass_alpha(a)
+	a = round(a)
+	return ("&H%02X&"):format(a)
+end
+
 local function interp_lch(t, color_1, color_2)
-	local l1, c1, h1 = LCHfromLAB(LABfromXYZ(XYZfromRGB(parse_ass(color_1))))
-	local l2, c2, h2 = LCHfromLAB(LABfromXYZ(XYZfromRGB(parse_ass(color_2))))
+	local l1, c1, h1 = LCHfromLAB(LABfromXYZ(XYZfromRGB(parse_ass_color(color_1))))
+	local l2, c2, h2 = LCHfromLAB(LABfromXYZ(XYZfromRGB(parse_ass_color(color_2))))
 	local l, c, h = interpolateLCh(t, l1, c1, h1, l2, c2, h2)
 	local r, g, b = RGBfromXYZ(XYZfromLAB(LABfromLCH(l, c, h)))
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
 local function interp_lab(t, color_1, color_2)
-	local l1, a1, b1 = LABfromXYZ(XYZfromRGB(parse_ass(color_1)))
-	local l2, a2, b2 = LABfromXYZ(XYZfromRGB(parse_ass(color_2)))
+	local l1, a1, b1 = LABfromXYZ(XYZfromRGB(parse_ass_color(color_1)))
+	local l2, a2, b2 = LABfromXYZ(XYZfromRGB(parse_ass_color(color_2)))
 	local l, a, b = interpolate(t, l1, a1, b1, l2, a2, b2)
 	local r, g, b = RGBfromXYZ(XYZfromLAB(l, a, b))
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
 local function interp_xyz(t, color_1, color_2)
-	local x1, y1, z1 = XYZfromRGB(parse_ass(color_1))
-	local x2, y2, z2 = XYZfromRGB(parse_ass(color_2))
+	local x1, y1, z1 = XYZfromRGB(parse_ass_color(color_1))
+	local x2, y2, z2 = XYZfromRGB(parse_ass_color(color_2))
 	local x, y, z = interpolate(t, x1, y1, z1, x2, y2, z2)
 	local r, g, b = RGBfromXYZ(x, y, z)
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
 local function interp_rgb(t, color_1, color_2)
-	local r1, g1, b1 = parse_ass(color_1)
-	local r2, g2, b2 = parse_ass(color_2)
+	local r1, g1, b1 = parse_ass_color(color_1)
+	local r2, g2, b2 = parse_ass_color(color_2)
 	local r, g, b = interpolate(t, r1, g1, b1, r2, g2, b2)
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
-local fmt_rgb = fmt_ass
+local function interp_alpha(t, alpha_1, alpha_2)
+	local a1 = parse_ass_alpha(alpha_1)
+	local a2 = parse_ass_alpha(alpha_2)
+
+	local a = (1-t)*a1 + t*a2
+	return fmt_ass_alpha(a)
+end
+
+local fmt_rgb = fmt_ass_color
 
 local function fmt_xyz(x, y, z)
 	local r, g, b = RGBfromXYZ(x, y, z)
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
 local function fmt_lab(l, a, b)
 	local r, g, b = RGBfromXYZ(XYZfromLAB(l, a, b))
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
 local function fmt_lch(l, c, h)
 	local r, g, b = RGBfromXYZ(XYZfromLAB(LABfromLCH(l, c, h)))
-	return fmt_ass(r, g, b)
+	return fmt_ass_color(r, g, b)
 end
 
 return {
@@ -215,5 +246,7 @@ return {
 	fmt_rgb = fmt_rgb,
 	fmt_xyz = fmt_xyz,
 	fmt_lab = fmt_lab,
-	fmt_lch = fmt_lch
+	fmt_lch = fmt_lch,
+	interp_alpha = interp_alpha,
+	fmt_alpha = fmt_ass_alpha,
 }
