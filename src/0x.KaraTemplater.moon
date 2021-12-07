@@ -871,6 +871,7 @@ apply_templates = (subs, lines, components, tenv) ->
 
 					skipped = false
 					tenv.skip = (using skipped) -> skipped = true
+					tenv.unskip = (using skipped) -> skipped = false
 
 					prefix = eval_body template.text, tenv
 					mixin_classes = switch cls
@@ -895,6 +896,7 @@ apply_templates = (subs, lines, components, tenv) ->
 						subs.append tenv.line
 
 					tenv.skip = nil
+					tenv.unskip = nil
 
 					tenv.line = nil
 				tenv.loopctx\incr!
