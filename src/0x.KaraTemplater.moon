@@ -57,6 +57,8 @@ util = (tenv) -> {
 		x0 = objs[1][field]
 		x1 = objs[#objs][field]
 
+		if x1 == x0 then return 0
+
 		(x - x0) / (x1 - x0)
 
 	lerp: (t, v0, v1) -> (v1 * t) + (v0 * (1 - t))
