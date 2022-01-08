@@ -307,6 +307,7 @@ parse_templates = (subs, tenv) ->
 			interested_actors: nil
 			disinterested_actors: nil
 			interested_template_actors: nil
+			disinterested_template_actors: nil
 			interested_inline_fx: nil
 			interested_syl_fx: nil
 			repetitions: {}
@@ -394,7 +395,7 @@ parse_templates = (subs, tenv) ->
 					component.interested_layers or= {}
 					component.interested_layers[layer] = true
 
-				when 'actor', 'noactor', 'sylfx', 'inlinefx':
+				when 'actor', 'noactor', 'sylfx', 'inlinefx'
 					if classifier == 'once'
 						error "The `#{modifier}` modifier is invalid for `once` components."
 
@@ -413,13 +414,18 @@ parse_templates = (subs, tenv) ->
 					component[field] or= {}
 					component[field][name] = true
 
-				when 't_actor'
+				when 't_actor', 'no_t_actor'
 					unless line_type == 'mixin'
-						error 'The `t_actor` modifier is only valid for mixins.'
+						error "The `#{modifier}` modifier is only valid for mixins."
 					actor = modifiers[j]
 					j += 1
-					component.interested_template_actors or= {}
-					component.interested_template_actors[actor] = true
+
+					field = switch modifier
+						when 't_actor' then 'interested_template_actors'
+						when 'no_t_actor' then 'disinterested_template_actors'
+
+					component[field] or= {}
+					component[field][actor] = true
 
 				when 'nomerge'
 					unless line_type == 'template'
@@ -687,6 +693,9 @@ should_eval = (component, tenv, obj, base_component) ->
 	if actors = component.interested_template_actors
 		-- Only mixins can have a `t_actor` modifier.
 		return false unless test_multi_actor actors, base_component.template_actor
+
+	if actors = component.disinterested_template_actors
+		return false if test_multi_actor actors, base_component.template_actor
 
 	if fxs = component.interested_syl_fx
 		syl = tenv.syl or tenv.char.syl
