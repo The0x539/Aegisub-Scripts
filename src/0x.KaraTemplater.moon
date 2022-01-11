@@ -104,10 +104,10 @@ util = (tenv) -> {
 		else
 			"\\clip(#{ftoa w1},0,#{ftoa w2},#{meta.res_y})"
 
-	get_grad: (c1, c2, interp, loopname='grad') ->
+	get_grad: (c1, c2, interp, loopname='grad', offset=0) ->
 		interp or= guess_interp tenv, c1, c2
 		-- TODO: expose this calculation somewhere, because it's handy
-		t = (tenv.loopctx.state[loopname] - 1) / (tenv.loopctx.max[loopname] - 1)
+		t = (tenv.loopctx.state[loopname] - 1 + offset) / (tenv.loopctx.max[loopname] - 1)
 		interp t, c1, c2
 
 	get_multi_grad: (cs, interp, loopname='grad') ->
