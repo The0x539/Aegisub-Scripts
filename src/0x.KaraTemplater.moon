@@ -62,11 +62,11 @@ util = (tenv) -> {
 
 	lerp: (t, v0, v1) -> (v1 * t) + (v0 * (1 - t))
 
-	gbc: (c1, c2, interp, t=tenv.util.cx!) ->
+	gbc: (c1, c2, interp, t=tenv.util.xf!) ->
 		interp or= guess_interp tenv, c1, c2
 		interp t, c1, c2
 
-	multi_gbc: (cs, interp, t=tenv.util.cx!) ->
+	multi_gbc: (cs, interp, t=tenv.util.xf!) ->
 		if t == 0 then return cs[1]
 		if t == 1 then return cs[#cs]
 
@@ -757,9 +757,9 @@ eval_inline_var = (tenv) -> (var) ->
 		when '$si' then (tenv.orgsyl or tenv.orgchar or tenv.orgline).si
 		when '$wi' then (tenv.orgword or tenv.orgchar or tenv.orgline).wi
 		when '$ci' then (tenv.orgchar or tenv.orgsyl or tenv.orgword or tenv.orgline).ci
-		when '$cxf' then tenv.util.cx(tenv.orgchar, tenv.orgline.chars)
-		when '$sxf' then tenv.util.cx(tenv.orgsyl or tenv.orgchar.syl, tenv.orgline.syls)
-		when '$wxf' then tenv.util.cx(tenv.orgword or tenv.orgchar.word, tenv.orgline.words)
+		when '$cxf' then tenv.util.xf(tenv.orgchar, tenv.orgline.chars)
+		when '$sxf' then tenv.util.xf(tenv.orgsyl or tenv.orgchar.syl, tenv.orgline.syls)
+		when '$wxf' then tenv.util.xf(tenv.orgword or tenv.orgchar.word, tenv.orgline.words)
 		else
 			if name = strip_prefix var, '$loop_'
 				tenv.loopctx.state[name] or 1
