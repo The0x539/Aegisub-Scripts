@@ -631,9 +631,18 @@ populate_indices = (line) ->
 			ci += 1
 		si += 1
 
+-- Given a list of tables, populate the `next` and `prev` fields of each to form an ad-hoc doubly linked list.
+link_list = (list) ->
+	for i = 1, #list
+		if i > 1
+			list[i].prev = list[i - 1]
+		if i < #list
+			list[i].next = list[i]
+
 -- Populate lines with extra information necessary for template evaluation.
 -- Includes both karaskel preprocessing and some additional custom data.
 preproc_lines = (subs, meta, styles, lines) ->
+	link_list lines
 	aegisub.progress.set 0
 	for i, line in ipairs lines
 		check_cancel!
@@ -647,6 +656,10 @@ preproc_lines = (subs, meta, styles, lines) ->
 		preproc_chars line
 		preproc_words line
 		populate_indices line
+
+		link_list line.syls
+		link_list line.chars
+		link_list line.words
 
 		aegisub.progress.set 100 * i / #lines
 
