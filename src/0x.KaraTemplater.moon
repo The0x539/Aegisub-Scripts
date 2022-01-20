@@ -733,12 +733,17 @@ eval_inline_var = (tenv) -> (var) ->
 		len = prefix\len!
 		if str\sub(1, len) == prefix then str\sub(len + 1) else nil
 
+	-- TODO: inline vars based on util.cx; I just need good names
 	val = switch var
 		when '$sylstart' then syl.start_time
 		when '$sylend' then syl.end_time
 		when '$syldur' then syl.duration
 		when '$kdur', '$sylkdur' then syl.duration / 10
 		when '$ldur' then tenv.orgline.duration
+		when '$li' then tenv.orgline.li
+		when '$si' then (tenv.orgsyl or tenv.orgchar or tenv.orgline).si
+		when '$wi' then (tenv.orgword or tenv.orgchar or tenv.orgline).wi
+		when '$ci' then (tenv.orgchar or tenv.orgsyl or tenv.orgword or tenv.orgline).ci
 		else
 			if name = strip_prefix var, '$loop_'
 				tenv.loopctx.state[name] or 1
