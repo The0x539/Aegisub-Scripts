@@ -637,7 +637,7 @@ link_list = (list) ->
 		if i > 1
 			list[i].prev = list[i - 1]
 		if i < #list
-			list[i].next = list[i]
+			list[i].next = list[i + 1]
 
 -- Populate lines with extra information necessary for template evaluation.
 -- Includes both karaskel preprocessing and some additional custom data.
