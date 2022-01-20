@@ -50,9 +50,8 @@ util = (tenv) -> {
 
 	fad: (t_in, t_out) -> tenv.util.tag_or_default {'fad', 'fade'}, "\\fad(#{t_in},#{t_out})"
 
-	-- Name subject to change if someone thinks of something more meaningful
-	-- (an alias will be provided)
-	cx: (obj=tenv.char, objs=tenv.orgline.chars, field='center') ->
+	-- "x fraction": first obj gets 0.0, last gets 1.0, and the rest get appropriate fractional values based on their center
+	xf: (obj=tenv.char, objs=tenv.orgline.chars, field='center') ->
 		x = obj[field]
 		x0 = objs[1][field]
 		x1 = objs[#objs][field]
@@ -267,6 +266,8 @@ class template_env
 			@ln.tag.move = monkey_patch @ln.tag.move
 
 		@util = util @
+		-- Not the best place to put an alias, but I don't want to mess up how the body of the util constructor is just a table literal.
+		@util.cx = @util.xf
 
 		@retime = _retime @
 		@relayer = _relayer @
@@ -746,7 +747,6 @@ eval_inline_var = (tenv) -> (var) ->
 		len = prefix\len!
 		if str\sub(1, len) == prefix then str\sub(len + 1) else nil
 
-	-- TODO: inline vars based on util.cx; I just need good names
 	val = switch var
 		when '$sylstart' then syl.start_time
 		when '$sylend' then syl.end_time
@@ -757,6 +757,9 @@ eval_inline_var = (tenv) -> (var) ->
 		when '$si' then (tenv.orgsyl or tenv.orgchar or tenv.orgline).si
 		when '$wi' then (tenv.orgword or tenv.orgchar or tenv.orgline).wi
 		when '$ci' then (tenv.orgchar or tenv.orgsyl or tenv.orgword or tenv.orgline).ci
+		when '$cxf' then tenv.util.cx(tenv.orgchar, tenv.orgline.chars)
+		when '$sxf' then tenv.util.cx(tenv.orgsyl or tenv.orgchar.syl, tenv.orgline.syls)
+		when '$wxf' then tenv.util.cx(tenv.orgword or tenv.orgchar.word, tenv.orgline.words)
 		else
 			if name = strip_prefix var, '$loop_'
 				tenv.loopctx.state[name] or 1
