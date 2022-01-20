@@ -500,6 +500,7 @@ collect_template_input = (subs, interested_styles) ->
 		if is_kara line
 			line.comment = true
 			subs[i] = line
+			line.li = i
 			table.insert lines, line
 	lines
 
