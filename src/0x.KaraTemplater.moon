@@ -754,12 +754,12 @@ eval_inline_var = (tenv) -> (var) ->
 		when '$kdur', '$sylkdur' then syl.duration / 10
 		when '$ldur' then tenv.orgline.duration
 		when '$li' then tenv.orgline.li
-		when '$si' then (tenv.orgsyl or tenv.orgchar or tenv.orgline).si
-		when '$wi' then (tenv.orgword or tenv.orgchar or tenv.orgline).wi
-		when '$ci' then (tenv.orgchar or tenv.orgsyl or tenv.orgword or tenv.orgline).ci
-		when '$cxf' then tenv.util.xf(tenv.orgchar, tenv.orgline.chars)
-		when '$sxf' then tenv.util.xf(tenv.orgsyl or tenv.orgchar.syl, tenv.orgline.syls)
-		when '$wxf' then tenv.util.xf(tenv.orgword or tenv.orgchar.word, tenv.orgline.words)
+		when '$si' then (tenv.syl or tenv.char or tenv.orgline).si
+		when '$wi' then (tenv.word or tenv.char or tenv.orgline).wi
+		when '$ci' then (tenv.char or tenv.syl or tenv.word or tenv.orgline).ci
+		when '$cxf' then tenv.util.xf(tenv.char, tenv.orgline.chars)
+		when '$sxf' then tenv.util.xf(tenv.syl or tenv.char.syl, tenv.orgline.syls)
+		when '$wxf' then tenv.util.xf(tenv.word or tenv.char.word, tenv.orgline.words)
 		else
 			if name = strip_prefix var, '$loop_'
 				tenv.loopctx.state[name] or 1
