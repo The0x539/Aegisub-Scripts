@@ -74,7 +74,7 @@ util = (tenv) -> {
 		-- This is deeply disturbing.
 		t *= (#cs - 1) 
 
-		c1, c2 = cs[math.ceil t], cs[1 + math.ceil t]
+		c1, c2 = cs[1 + math.floor t], cs[2 + math.floor t]
 		tenv.util.gbc c1, c2, interp, t % 1
 
 	make_grad: (v1, v2, dv=1, vertical=true, loopname='grad', extend=true) ->
@@ -115,7 +115,7 @@ util = (tenv) -> {
 		if t == 1 then return cs[#cs]
 
 		t *= (#cs - 1) 
-		c1, c2 = cs[math.ceil t], cs[1 + math.ceil t]
+		c1, c2 = cs[1 + math.floor t], cs[2 + math.floor t]
 
 		interp or= guess_interp tenv, c1, c2
 		interp t % 1, c1, c2
