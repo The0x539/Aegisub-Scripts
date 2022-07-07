@@ -123,7 +123,9 @@ local function interpolate(t, a1, b1, c1, a2, b2, c2)
 end
 
 local function lighten(x, y, z, amount, space)
-	space = space or "lch"
+	-- amount: value between -1 and 1
+	-- 		   (though *technically* absolutely larger values) work too
+	space = space or "lab"
 	local l,a,b
 	if space == "lch" or space == "lab" then
 		l = x
@@ -131,6 +133,9 @@ local function lighten(x, y, z, amount, space)
 		l,a,b = LABfromXYZ(XYZfromRGB(x,y,z))
 	elseif space == "xyz" then
 		l,a,b = LABfromXYZ(x,y,z)
+	else
+		-- invalid colorspace requested, give up gracefully
+		return x, y, z
 	end
 
 	if amount > 0 then
