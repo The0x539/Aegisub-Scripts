@@ -66,7 +66,7 @@ main = (subs, sel, active) ->
 	println 'Rotation'
 	println '\tFrame\tDegrees'
 	for i, rotation in ipairs rotations
-		println '\t%d\t%f', i - 1, rotation
+		println '\t%d\t%f', i - 1, -rotation
 
 	result = table.concat data, '\n'
 
