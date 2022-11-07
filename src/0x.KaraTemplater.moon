@@ -830,8 +830,16 @@ apply_mixins = (template, mixins, objs, tenv, tags, cls) ->
 				if should_eval mixin, tenv, obj, template
 					ci = if (cls == 'line' or mixin.is_prefix) then 0 else obj.ci
 					tags[ci] or= {}
+
+					mskipped = false
+					tenv.mskip = (using mskipped) -> mskipped = true
+					tenv.unmskip = (using mskipped) -> mskipped = false
+
 					tag = eval_body mixin.text, tenv
-					table.insert tags[ci], tag
+
+					unless mskipped
+						table.insert tags[ci], tag
+
 				tenv.mloopctx\incr!
 			tenv.mloopctx = nil
 
