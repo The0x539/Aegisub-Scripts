@@ -18,7 +18,7 @@ karaOK, USE_KARAOK = try_import 'ln.kara'
 colorlib, USE_COLOR = try_import '0x.color'
 
 -- A magic table that is interested in every style.
-all_styles = {} 
+all_styles = {}
 setmetatable all_styles,
 	__index: -> true
 	__newindex: ->
@@ -72,7 +72,7 @@ util = (tenv) -> {
 
 		-- Without these parens, moonc outputs incorrect Lua.
 		-- This is deeply disturbing.
-		t *= (#cs - 1) 
+		t *= (#cs - 1)
 
 		c1, c2 = cs[1 + math.floor t], cs[2 + math.floor t]
 		tenv.util.gbc c1, c2, interp, t % 1
@@ -114,7 +114,7 @@ util = (tenv) -> {
 		if t == 0 then return cs[1]
 		if t == 1 then return cs[#cs]
 
-		t *= (#cs - 1) 
+		t *= (#cs - 1)
 		c1, c2 = cs[1 + math.floor t], cs[2 + math.floor t]
 
 		interp or= guess_interp tenv, c1, c2
@@ -439,7 +439,7 @@ parse_templates = (subs, tenv) ->
 					unless line_type == 'template'
 						error 'The `keepspace` modifier is only valid for templates.'
 					component.strip_trailing_space = false
-				
+
 				when 'prefix'
 					unless line_type == 'mixin'
 						error 'The `prefix` modifier is only valid for mixins.'
@@ -699,7 +699,7 @@ should_eval = (component, tenv, obj, base_component) ->
 	if layers = component.interested_layers
 		-- Only mixins can have a `layer` modifier.
 		return false unless layers[tenv.line.layer]
-	
+
 	if actors = component.interested_actors
 		-- Actor filtering is irrelevant for `once` components.
 		return false unless test_multi_actor actors, tenv.orgline.actor
@@ -870,7 +870,7 @@ apply_templates = (subs, lines, components, tenv) ->
 					code.func!
 				tenv.loopctx\incr!
 			tenv.loopctx = nil
-	
+
 	run_mixins = (classes, template) ->
 		tags = {}
 		for cls in *classes
