@@ -1,0 +1,18 @@
+[package]
+name = "depctrl"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+serde_with = { version = "*", features = ["macros"], default-features = false }
+indexmap = { version = "*", features = ["serde"] }
+chrono = { version = "*", features = ["serde"], default-features = false }
+hex = "*"
+thiserror = "*"
+
+[dev-dependencies]
+ureq = { version = "*", features = ["tls"], default-features = false }
+miette = { version = "*", features = ["fancy"] }
+pretty_assertions = "*"
