@@ -977,6 +977,7 @@ apply_templates = (subs, lines, components, tenv) ->
 		aegisub.progress.set 100 * i / #lines
 
 fold_output = (subs) ->
+	-- code from https://github.com/TypesettingTools/arch1t3cht-Aegisub-Scripts/blob/6c1aa65e80a660cc3d2d47e7d5427155592a4300/macros/arch.ConvertFolds.moon
 	parse_line_fold = (line) ->
 		return if not line.extra
 		
