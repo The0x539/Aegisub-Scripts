@@ -976,6 +976,37 @@ apply_templates = (subs, lines, components, tenv) ->
 		tenv.orgline = nil
 		aegisub.progress.set 100 * i / #lines
 
+fold_output = (subs) ->
+	parse_line_fold = (line) ->
+		return if not line.extra
+		
+		info = line.extra["_aegi_folddata"]
+		return if not info
+	
+		side, collapsed, id = info\match "^(%d+);(%d+);(%d+)$"
+		return {:side, :collapsed, :id}
+	
+	-- find a free fold ID to use
+	maxid = 0
+	for i, line in ipairs subs
+		fold = parse_line_fold line
+		maxid = math.max(maxid, fold.id or 0) if fold
+	
+	-- find first and last lines of output
+	local firstfx, lastfx, fr, to
+	for i, line in ipairs subs
+		continue unless line.effect and line.effect == "fx"
+		fr, firstfx = i, line if not firstfx
+		to, lastfx = i, line
+
+	-- generate fold between the two
+	firstfx.extra or= {}
+	lastfx.extra or= {}
+	firstfx.extra["_aegi_folddata"] = "0;1;#{maxid+1}"
+	lastfx.extra["_aegi_folddata"] = "1;1;#{maxid+1}"
+	subs[fr] = firstfx
+	subs[to] = lastfx
+	
 -- Entry point
 main = (subs, sel, active) ->
 	math.randomseed os.time!
@@ -1005,6 +1036,9 @@ main = (subs, sel, active) ->
 
 	task 'Applying templates...'
 	apply_templates subs, lines, components, tenv
+
+	task 'Folding output...'
+	fold_output subs
 
 	aegisub.set_undo_point 'apply karaoke template'
 
