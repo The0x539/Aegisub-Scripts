@@ -879,69 +879,71 @@ apply_templates = (subs, lines, components, tenv) ->
 			apply_mixins template, mixins, objs, tenv, tags, cls
 		tags
 
+	run_template = (cls, template, orgobj) ->
+		tenv.template_actor = template.template_actor
+		tenv.loopctx = loopctx template
+		while not tenv.loopctx.done
+			check_cancel!
+			if should_eval template, tenv, orgobj
+				with tenv.line = table.copy tenv.orgline
+					.comment = false
+					.effect = 'fx'
+					.layer = template.layer
+					-- TODO: all this mutable access to the original is super sketchy. do something about it?
+					.chars = orgobj.chars
+					.words, .syls = switch cls
+						when 'line' then .words, .syls
+						when 'word' then {orgobj}, nil
+						when 'syl' then nil, {orgobj}
+						when 'char' then nil, nil
+
+					-- I have no idea what I'm doing.
+					--ci_offset = orgobj.chars[1].ci - 1
+					--char.i -= ci_offset for char in *.chars
+
+					--if .syls
+					--	si_offset = .syls[1].si - 1
+					--	syl.i -= si_offset for syl in *.syls
+
+					--if .words
+					--	wi_offset = .words[1].wi - 1
+					--	word.i -= wi_offset for word in *.words
+
+				skipped = false
+				tenv.skip = (using skipped) -> skipped = true
+				tenv.unskip = (using skipped) -> skipped = false
+
+				prefix = eval_body template.text, tenv
+				mixin_classes = switch cls
+					when 'line' then {'line', 'word', 'syl', 'char'}
+					when 'word' then {'line', 'word', 'char'}
+					when 'syl' then {'line', 'syl', 'char'}
+					when 'char' then {'line', 'char'}
+
+				tags = run_mixins mixin_classes, template
+				tenv.line.text = build_text prefix, tenv.line.chars, tags, template
+
+				if template.merge_tags
+					-- A primitive way of doing this. Patches welcome.
+					-- Otherwise, if you're doing something fancy enough that this breaks it and `nomerge` isn't acceptable, you're on your own.
+					tenv.line.text = tenv.line.text\gsub '}{', ''
+
+				if template.strip_trailing_space
+					-- Less primitive than the above thing, but still primitive. Might have worst-case quadratic performance.
+					tenv.line.text = tenv.line.text\gsub ' *$', ''
+
+				unless skipped
+					subs.append tenv.line
+
+				tenv.skip = nil
+				tenv.unskip = nil
+
+				tenv.line = nil
+			tenv.loopctx\incr!
+		tenv.loopctx = nil
+
 	run_templates = (cls, orgobj) ->
-		for template in *components.template[cls]
-			tenv.template_actor = template.template_actor
-			tenv.loopctx = loopctx template
-			while not tenv.loopctx.done
-				check_cancel!
-				if should_eval template, tenv, orgobj
-					with tenv.line = table.copy tenv.orgline
-						.comment = false
-						.effect = 'fx'
-						.layer = template.layer
-						-- TODO: all this mutable access to the original is super sketchy. do something about it?
-						.chars = orgobj.chars
-						.words, .syls = switch cls
-							when 'line' then .words, .syls
-							when 'word' then {orgobj}, nil
-							when 'syl' then nil, {orgobj}
-							when 'char' then nil, nil
-
-						-- I have no idea what I'm doing.
-						--ci_offset = orgobj.chars[1].ci - 1
-						--char.i -= ci_offset for char in *.chars
-
-						--if .syls
-						--	si_offset = .syls[1].si - 1
-						--	syl.i -= si_offset for syl in *.syls
-
-						--if .words
-						--	wi_offset = .words[1].wi - 1
-						--	word.i -= wi_offset for word in *.words
-
-					skipped = false
-					tenv.skip = (using skipped) -> skipped = true
-					tenv.unskip = (using skipped) -> skipped = false
-
-					prefix = eval_body template.text, tenv
-					mixin_classes = switch cls
-						when 'line' then {'line', 'word', 'syl', 'char'}
-						when 'word' then {'line', 'word', 'char'}
-						when 'syl' then {'line', 'syl', 'char'}
-						when 'char' then {'line', 'char'}
-
-					tags = run_mixins mixin_classes, template
-					tenv.line.text = build_text prefix, tenv.line.chars, tags, template
-
-					if template.merge_tags
-						-- A primitive way of doing this. Patches welcome.
-						-- Otherwise, if you're doing something fancy enough that this breaks it and `nomerge` isn't acceptable, you're on your own.
-						tenv.line.text = tenv.line.text\gsub '}{', ''
-
-					if template.strip_trailing_space
-						-- Less primitive than the above thing, but still primitive. Might have worst-case quadratic performance.
-						tenv.line.text = tenv.line.text\gsub ' *$', ''
-
-					unless skipped
-						subs.append tenv.line
-
-					tenv.skip = nil
-					tenv.unskip = nil
-
-					tenv.line = nil
-				tenv.loopctx\incr!
-			tenv.loopctx = nil
+		run_template cls, template, orgobj for template in *components.template[cls]
 
 	run_code 'once'
 
