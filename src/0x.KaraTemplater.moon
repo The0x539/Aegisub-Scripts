@@ -215,6 +215,16 @@ class template_env
 				@line.end_time = end_offset
 				@line.duration = end_offset - start_offset
 				return
+			when 'clamp'
+				@line.start_time = math.max @line.start_time, @orgline.start_time + start_offset
+				@line.end_time = math.min @line.end_time, @orgline.end_time + end_offset
+				@line.duration = @line.end_time - @line.start_time
+				return
+			when 'clampsyl'
+				@line.start_time = math.max @line.start_time, syl.start_time + start_offset
+				@line.end_time = math.min @line.end_time, syl.end_time + end_offset
+				@line.duration = @line.end_time - @line.start_time
+				return
 			else error "Unknown retime mode: #{mode}", 2
 
 		orig_start = @orgline.start_time
