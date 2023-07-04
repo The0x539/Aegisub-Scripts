@@ -330,6 +330,7 @@ parse_templates = (subs, tenv) ->
 			keep_tags: false
 			multi: false
 			noblank: false
+			nok0: false
 			notext: false
 			merge_tags: true
 			strip_trailing_space: true
@@ -387,6 +388,11 @@ parse_templates = (subs, tenv) ->
 					if classifier == 'once'
 						error 'The `noblank` modifier is invalid for `once` components.'
 					component.noblank = true
+
+				when 'nok0'
+					unless classifier == 'syl' or classifier == 'char'
+						error 'The `nok0` modifier is only valid for `syl` and `char` components.'
+					component.nok0 = true
 
 				when 'keeptags', 'multi'
 					unless classifier == 'syl'
@@ -736,6 +742,12 @@ should_eval = (component, tenv, obj, base_component) ->
 		-- `obj` is nil iff the component is a `once` component.
 		-- No-blank filtering is irrelevant for `once` components.
 		return false if obj.is_blank or obj.is_space
+
+	if component.nok0
+		-- syl objects have direct access to their duration
+		-- char objects need to fetch it from their containing syl
+		-- zero-length filtering is irrelevant for line, word, and once components
+		return false if (obj.duration or obj.syl.duration) <= 0
 
 	cond_val = eval_cond component.condition, tenv
 	if component.cond_is_negated
