@@ -613,7 +613,7 @@ preproc_chars = (line) ->
 	for syl in *line.syls
 		syl.chars = {}
 
-		-- Map override blocks `{...}` to their char index within the stripped syl
+		-- Map override blocks `{...}` to their char's index within the stripped line
 		-- Potential differential issue between lua chars and unicode.chars
 		tags = {}
 		cum_offset = 0
