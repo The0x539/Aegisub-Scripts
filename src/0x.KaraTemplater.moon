@@ -502,7 +502,7 @@ remove_old_output = (subs) ->
 collect_template_input = (subs, interested_styles) ->
 	is_kara = (line) ->
 		return false unless line.class == 'dialogue'
-		return false unless line.effect == 'karaoke' or line.effect == 'kara'
+		return false unless line.effect == 'karaoke' or line.effect == 'kara' or line.effect == 'kara rtl'
 		return false unless interested_styles[line.style]
 		true
 
@@ -529,6 +529,16 @@ preproc_syls = (line) ->
 				.syl_fx = .inline_fx
 			else
 				.syl_fx = ''
+
+	if line.is_rtl
+		-- based on karaskel.do_basic_layout
+		curx = line.width
+		for syl in *line.syls
+			with syl
+				.right = curx - .prespacewidth
+				.center = .right - .width / 2
+				.left = .right - .width
+				curx -= (.prespacewidth + .width + .postspacewidth)
 
 -- Generate word objects resembling the syl objects karaskel makes.
 preproc_words = (line) ->
@@ -583,8 +593,12 @@ preproc_words = (line) ->
 			.height = 0
 			.prespacewidth = aegisub.text_extents line.styleref, .prespace
 			.postspacewidth = aegisub.text_extents line.styleref, .postspace
-			.left = first_char.left
-			.right = last_char.right
+			if line.is_rtl
+				.left = last_char.left
+				.right = first_char.right
+			else
+				.left = first_char.left
+				.right = last_char.right
 			.center = (.left + .right) / 2
 
 			for char in *.wchars
@@ -598,7 +612,7 @@ preproc_words = (line) ->
 preproc_chars = (line) ->
 	line.chars = {}
 	i = 1
-	left = 0
+	left = if line.is_rtl then line.width else 0
 	for syl in *line.syls
 		syl.chars = {}
 		for ch in unicode.chars syl.text_stripped
@@ -608,11 +622,16 @@ preproc_chars = (line) ->
 			char.chars = {char}
 
 			char.width, char.height, char.descent, _ = aegisub.text_extents line.styleref, ch
-			char.left = left
-			char.center = left + char.width/2
-			char.right = left + char.width
-
-			left += char.width
+			if line.is_rtl
+				left -= char.width
+				char.left = left
+				char.center = left + char.width/2
+				char.right = left + char.width
+			else
+				char.left = left
+				char.center = left + char.width/2
+				char.right = left + char.width
+				left += char.width
 
 			table.insert syl.chars, char
 			table.insert line.chars, char
@@ -662,6 +681,7 @@ preproc_lines = (subs, meta, styles, lines) ->
 
 		line.is_blank = (#line.text_stripped == 0)
 		line.is_space = (line.text_stripped\find('[^ \t]') == nil)
+		line.is_rtl = line.effect == 'kara rtl'
 
 		preproc_syls line
 		preproc_chars line
