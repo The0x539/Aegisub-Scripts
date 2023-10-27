@@ -14,6 +14,8 @@ try_import = (name) ->
 		module = setmetatable {}, {__index: accessor, __newindex: accessor}
 	module, success
 
+local print_stacktrace
+
 karaOK, USE_KARAOK = try_import 'ln.kara'
 colorlib, USE_COLOR = try_import '0x.color'
 
@@ -296,11 +298,26 @@ parse_templates = (subs, tenv) ->
 
 	aegisub.progress.set 0
 
+	dialogue_index = 0
+
 	for i, line in ipairs subs
 		check_cancel!
-		error = error -- TODO: define local wrapper function that gives context
 
-		continue unless line.class == 'dialogue' and line.comment
+		continue unless line.class == 'dialogue'
+		dialogue_index += 1
+		continue unless line.comment
+
+		error = (msg) ->
+			tenv.print "Error parsing component on line #{dialogue_index}:"
+			tenv.print '\t' .. msg
+			tenv.print!
+
+			tenv.print 'Line text:'
+			tenv.print '\t' .. line.raw
+			tenv.print!
+
+			print_stacktrace!
+			aegisub.cancel!
 
 		effect = line.effect\gsub('^ *', '')\gsub(' *$', '')
 		first_word = effect\gsub(' .*', '')
@@ -1053,3 +1070,38 @@ can_remove = (subs, _sel, _active) ->
 
 aegisub.register_macro '0x539\'s Templater', 'no description', main, can_apply
 aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_fx_main, can_remove
+
+print_stacktrace = ->
+	moon =
+		errors: require 'moonscript.errors'
+		posmaps: require 'moonscript.line_tables'
+
+	cache = {}
+
+	aegisub.log 'Stack trace:\n'
+
+	current_source = nil
+
+	for i = 1, 30
+		info = debug.getinfo i, 'fnlS'
+		break unless info
+
+		with info
+			posmap = moon.posmaps[.source]
+			if .name == nil
+				if .func == main
+					.name = 'main'
+				else
+					.name = '<anonymous>'
+
+			.currentline = moon.errors.reverse_line_number .source, posmap, .currentline, cache
+			.linedefined = moon.errors.reverse_line_number .source, posmap, .linedefined, cache
+
+			if .source != current_source
+				current_source = .source
+				short_path = .source\gsub '.*automation', 'automation'
+				aegisub.log "    #{short_path}\n"
+
+			aegisub.log "\tline #{.currentline} \t(in function #{.name}, defined on line #{.linedefined})\n"
+
+	aegisub.log '\n'
