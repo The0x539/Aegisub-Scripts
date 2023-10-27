@@ -287,6 +287,9 @@ class template_env
 		@maxmloop = _maxloop @, 'mloopctx'
 		@set = _set @
 
+		@__private =
+			compilation_cache: {}
+
 -- Iterate over all sub lines, collecting those that are code chunks, templates, or mixins.
 parse_templates = (subs, tenv) ->
 	components =
@@ -817,12 +820,18 @@ eval_inline_var = (tenv) -> (var) ->
 
 -- Evaluate an inline Lua expression.
 eval_inline_expr = (tenv) -> (expr) ->
-	expr = expr\sub 2, -2 -- remove the `!`s
-	func_body = "return (#{expr});"
-	func, err = load func_body, "inline expression `#{func_body}`", t, tenv
-	if err != nil
-		aegisub.log 0, "Syntax error in inline expression `#{func_body}`: #{err}"
-		aegisub.cancel!
+	cache = tenv.__private.compilation_cache
+	func = cache[expr]
+	if func == nil
+		actual_expr = expr\sub 2, -2 -- remove the `!`s
+		func_body = "return (#{actual_expr});"
+		func, err = load func_body, "inline expression `#{func_body}`", 't', tenv
+		if err != nil
+			aegisub.log 0, "Syntax error in inline expression `#{func_body}`: #{err}"
+			aegisub.cancel!
+
+		cache[expr] = func
+
 	val = func!
 	if val == nil then '' else tostring(val)
 
