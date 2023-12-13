@@ -119,24 +119,25 @@ Reload your automation scripts to generate a new configuration file.]]
         return true
 
     readFile: (file = @file, useLock = true, waitLockTime) =>
+        local guard
         if useLock
-            time, err = @getReadLock waitLockTime
-            unless time
+            guard, err = @getReadLock file, waitLockTime
+            if guard == nil
                 -- handle\close!
                 return false, errors.failedLock\format "reading", err
 
         mode, file = fileOps.attributes file, "mode"
         if mode == nil
-            @releaseReadLock! if useLock
+            @releaseReadLock(guard) if useLock
             return false, file
         elseif not mode
-            @releaseReadLock! if useLock
+            @releaseReadLock(guard) if useLock
             @logger\trace traceMsgs.fileNotFound, @file
             return nil
 
         handle, err = io.open file, "r"
         unless handle
-            @releaseReadLock! if useLock
+            @releaseReadLock(guard) if useLock
             return false, err
 
         data = handle\read "*a"
@@ -151,11 +152,11 @@ Reload your automation scripts to generate a new configuration file.]]
             fileOps.copy @file, backup
             fileOps.remove @file, false, true
 
-            @releaseReadLock! if useLock
+            @releaseReadLock(guard) if useLock
             return false, errors.configCorrupted\format backup
 
         handle\close!
-        @releaseReadLock! if useLock
+        @releaseReadLock(guard) if useLock
 
         if "table" != type result
             return false, errors.jsonRoot\format type result
@@ -217,14 +218,14 @@ Reload your automation scripts to generate a new configuration file.]]
         return false, errors.noFile unless @file
 
         -- get a lock to avoid concurrent config file access
-        time, err = @getWriteLock waitLockTime
-        unless time
+        guard, err = @getWriteLock @file, waitLockTime
+        if guard == nil
             return false, errors.failedLock\format "writing", err
 
         -- read the config file
         config, err = @readFile @file, false
         if config == false
-            @releaseWriteLock!
+            @releaseWriteLock guard
             return false, errors.writeFailedRead\format err
         @logger\trace traceMsgs.fileCreate, @file unless config
         config or= {}
@@ -236,19 +237,19 @@ Reload your automation scripts to generate a new configuration file.]]
         for handler in *handlers
             config, err = handler\mergeSection config
             unless config
-                @releaseWriteLock!
+                @releaseWriteLock guard
                 return false, err
 
         -- create JSON
         success, res = pcall json.encode, config
         unless success
-            @releaseWriteLock!
+            @releaseWriteLock guard
             return false, res
 
         -- write the whole config file in one go
         handle, err = io.open(@file, "w")
         unless handle
-            @releaseWriteLock!
+            @releaseWriteLock guard
             return false, err
 
         @logger\trace traceMsgs.writing, @file
@@ -256,72 +257,59 @@ Reload your automation scripts to generate a new configuration file.]]
         handle\write res
         handle\flush!
         handle\close!
-        @releaseWriteLock!
+        @releaseWriteLock guard
 
         return true
 
-    getReadLock: (waitTimeout = 5000, checkInterval = 50) =>
-        return 0 if @hasLock
-        success = rwlock.try_lock_shared!
-        if success
-            @hasLock = true
-            return 0
+    getReadLock: (key, waitTimeout = 5000, checkInterval = 50) =>
+        guard = rwlock.try_lock_shared key
+        if guard != nil
+            return guard
 
         timeout, timePassed = waitTimeout, 0
-        while not success and timeout > 0
+        while guard == nil and timeout > 0
             PreciseTimer.sleep checkInterval
-            success = rwlock.try_lock_shared!
+            guard = rwlock.try_lock_shared key
             timeout -= checkInterval
             timePassed = waitTimeout - timeout
             if timePassed % (checkInterval*5) == 0
                 @logger\trace traceMsgs.waitingLock, timePassed
 
-        if success
+        if guard != nil
             @logger\trace traceMsgs.waitingLockFinished, timePassed
-            @hasLock = true
-            return timePassed
+            return guard
         else
-            return false, errors.lockTimeout
+            return nil, errors.lockTimeout
 
-    getWriteLock: (waitTimeout = 5000, checkInterval = 50) =>
-        return 0 if @hasLock
-        success = rwlock.try_lock_exclusive!
-        if success
-            @hasLock = true
-            return 0
+    getWriteLock: (key, waitTimeout = 5000, checkInterval = 50) =>
+        guard = rwlock.try_lock_exclusive key
+        if guard != nil
+            return guard
 
         timeout, timePassed = waitTimeout, 0
-        while not success and timeout > 0
+        while guard == nil and timeout > 0
             PreciseTimer.sleep checkInterval
-            success = rwlock.try_lock_exclusive!
+            guard = rwlock.try_lock_exclusive key
             timeout -= checkInterval
             timePassed = waitTimeout - timeout
             if timePassed % (checkInterval*5) == 0
                 @logger\trace traceMsgs.waitingLock, timePassed
 
-        if success
+        if guard != nil
             @logger\trace traceMsgs.waitingLockFinished, timePassed
             @hasLock = true
-            return timePassed
+            return guard
         else
-            return false, errors.lockTimeout
+            return nil, errors.lockTimeout
 
     getSectionHandler: (section, defaults, noLoad) =>
         return @@ @file, defaults, section, noLoad, @logger
 
-    releaseReadLock: (force) =>
-        if @hasLock or force
-            @hasLock = false
-            rwlock.unlock_shared!
-            return true
-        return false, errors.noLock
+    releaseReadLock: (guard) =>
+		rwlock.unlock_shared guard
 
-	releaseWriteLock: (force) =>
-        if @hasLock or force
-            @hasLock = false
-            rwlock.unlock_exclusive!
-            return true
-        return false, errors.noLock
+	releaseWriteLock: (guard) =>
+		rwlock.unlock_exclusive guard
 
     -- copied from Aegisub util.moon, adjusted to skip private keys
     deepCopy: (tbl) =>
