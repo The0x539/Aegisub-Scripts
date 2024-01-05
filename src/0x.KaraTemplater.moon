@@ -414,10 +414,15 @@ parse_templates = (subs, tenv) ->
 						error 'The `nok0` modifier is only valid for `syl` and `char` components.'
 					component.nok0 = true
 
-				when 'keeptags', 'multi'
+				when 'multi'
 					unless classifier == 'syl'
 						error "The `#{modifier}` modifier is only valid for `syl` components."
 					error "The `#{modifier}` modifier is not yet implemented."
+
+				when 'keeptags'
+					unless line_type == 'template'
+						error 'The `keeptags` modifier is only valid for templates.'
+					component.keeptags = true
 
 				when 'notext'
 					unless line_type == 'template'
@@ -627,9 +632,19 @@ preproc_chars = (line) ->
 	left = 0
 	for syl in *line.syls
 		syl.chars = {}
+
+		-- Map override blocks `{...}` to their char's index within the stripped line
+		-- Potential differential issue between lua chars and unicode.chars
+		tags = {}
+		cum_offset = 0
+		for ovr_blocks, syl_offset in syl.text\gmatch('({.-})()[^{}]') -- captures: contiguous override blocks preceding a char; char index within syl
+			cum_offset += #ovr_blocks
+			tags[i-1 + syl_offset - cum_offset] = ovr_blocks
+
 		for ch in unicode.chars syl.text_stripped
 			char = {:syl, :line, :i}
-			char.text = ch
+			char.text = (tags[i] or '') .. ch
+			char.text_stripped = ch
 			char.is_space = (ch == ' ' or ch == '\t') -- matches karaskel behavior
 			char.chars = {char}
 
@@ -903,7 +918,7 @@ build_text = (prefix, chars, tags, template) ->
 		if tags[char.ci] != nil
 			table.insert segments, tag for tag in *tags[char.ci]
 		unless template.notext
-			table.insert segments, char.text
+			table.insert segments, template.keeptags and char.text or char.text_stripped
 
 	table.concat segments
 
