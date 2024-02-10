@@ -8,7 +8,7 @@ use thiserror::Error;
 #[error("Failed to deserialize JSON")]
 struct DeserializeError {
     #[source_code]
-    json: NamedSource,
+    json: NamedSource<String>,
     #[label("here")]
     at: usize,
     source: serde_json::Error,
@@ -17,7 +17,7 @@ struct DeserializeError {
 impl DeserializeError {
     fn new(src: serde_json::Error, json: &str, name: &str) -> Self {
         Self {
-            json: NamedSource::new(name, json.to_owned()),
+            json: NamedSource::new(name, json.to_owned()).with_language("JSON"),
             at: get_offset(json, &src),
             source: src,
         }

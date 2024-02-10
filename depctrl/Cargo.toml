@@ -14,5 +14,5 @@ thiserror = "*"
 
 [dev-dependencies]
 ureq = { version = "*", features = ["tls"], default-features = false }
-miette = { version = "*", features = ["fancy"] }
+miette = { version = "*", features = ["fancy", "syntect-highlighter"] }
 pretty_assertions = "*"
