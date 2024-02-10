@@ -1,38 +1,40 @@
 use super::*;
 
-use miette::{Diagnostic, IntoDiagnostic, NamedSource, Result, WrapErr};
+use miette::{Diagnostic, IntoDiagnostic, NamedSource, Result, SourceOffset, SourceSpan, WrapErr};
 use pretty_assertions::assert_eq;
 use thiserror::Error;
 
-#[derive(Debug, Error, Diagnostic)]
-#[error("Failed to deserialize JSON")]
-struct DeserializeError {
-    #[source_code]
-    json: NamedSource<String>,
-    #[label("here")]
-    at: usize,
-    source: serde_json::Error,
+macro_rules! gen_tests {
+    ($($author:ident @ $path:literal)*) => {
+        $(
+            #[test]
+            fn $author() -> Result<()> {
+                let url = concat!(
+                    "https://raw.githubusercontent.com/",
+                    $path,
+                    "/DependencyControl.json",
+                );
+                test_roundtrip(url)
+            }
+        )*
+    };
 }
 
-impl DeserializeError {
-    fn new(src: serde_json::Error, json: &str, name: &str) -> Self {
-        Self {
-            json: NamedSource::new(name, json.to_owned()).with_language("JSON"),
-            at: get_offset(json, &src),
-            source: src,
-        }
-    }
-}
-
-fn get_offset(json: &str, err: &serde_json::Error) -> usize {
-    let mut line_offset = 0;
-    for line in json.split_inclusive('\n').take(err.line() - 1) {
-        line_offset += line.len();
-    }
-    line_offset + err.column().saturating_sub(1)
+gen_tests! {
+    petzku     @ "petzku/Aegisub-Scripts/master"
+    arch1t3cht @ "TypesettingTools/arch1t3cht-Aegisub-Scripts/main"
+    phoscity   @ "PhosCity/Aegisub-Scripts/main"
+    zeref      @ "TypesettingTools/zeref-Aegisub-Scripts/main"
+    myaa       @ "TypesettingTools/Myaamori-Aegisub-Scripts/master"
+    unanimated @ "TypesettingTools/unanimated-Aegisub-Scripts/master"
+    lyger      @ "TypesettingTools/lyger-Aegisub-Scripts/master"
+    line0      @ "TypesettingTools/line0-Aegisub-Scripts/master"
+    coffeeflux @ "TypesettingTools/CoffeeFlux-Aegisub-Scripts/master"
 }
 
 fn test_roundtrip(url: &str) -> Result<()> {
+    setup();
+
     let json = ureq::get(url)
         .send(std::io::empty())
         .into_diagnostic()
@@ -65,32 +67,58 @@ fn setup() {
     }));
 }
 
-macro_rules! gen_tests {
-    ($($author:ident @ $path:literal)*) => {
-        $(
-            #[test]
-            fn $author() -> Result<()> {
-                setup();
-
-                let url = concat!(
-                    "https://raw.githubusercontent.com/",
-                    $path,
-                    "/DependencyControl.json",
-                );
-                test_roundtrip(url)
-            }
-        )*
-    };
+#[derive(Debug, Error, Diagnostic)]
+#[error("Failed to deserialize JSON")]
+struct DeserializeError {
+    #[source_code]
+    json: NamedSource<String>,
+    #[label("here")]
+    at: SourceSpan,
+    source: serde_json::Error,
 }
 
-gen_tests! {
-    petzku     @ "petzku/Aegisub-Scripts/master"
-    arch1t3cht @ "TypesettingTools/arch1t3cht-Aegisub-Scripts/main"
-    phoscity   @ "PhosCity/Aegisub-Scripts/main"
-    zeref      @ "TypesettingTools/zeref-Aegisub-Scripts/main"
-    myaa       @ "TypesettingTools/Myaamori-Aegisub-Scripts/master"
-    unanimated @ "TypesettingTools/unanimated-Aegisub-Scripts/master"
-    lyger      @ "TypesettingTools/lyger-Aegisub-Scripts/master"
-    line0      @ "TypesettingTools/line0-Aegisub-Scripts/master"
-    coffeeflux @ "TypesettingTools/CoffeeFlux-Aegisub-Scripts/master"
+impl DeserializeError {
+    fn new(source: serde_json::Error, json: &str, name: &str) -> Self {
+        let source_offset = SourceOffset::from_location(json, source.line(), source.column());
+
+        let mut at = source_offset.into();
+        if source.is_data() {
+            if let Some(span) = span_from_offset(json, source_offset.offset()) {
+                at = span;
+            }
+        }
+
+        let json = NamedSource::new(name, json.to_owned()).with_language("JSON");
+        Self { json, at, source }
+    }
+}
+
+fn span_from_offset(json: &str, offset: usize) -> Option<SourceSpan> {
+    let root: json_spanned_value::spanned::Value = json_spanned_value::from_str(json).ok()?;
+
+    let mut stack = vec![&root];
+    let mut ranges = vec![];
+
+    // depth-first search for all values whose span includes `offset`
+    while let Some(val) = stack.pop() {
+        if !val.range().contains(&offset) {
+            continue;
+        }
+
+        ranges.push(val.range());
+
+        if let Some(arr) = val.as_array() {
+            stack.extend(arr);
+        } else if let Some(obj) = val.as_object() {
+            for key in obj.keys() {
+                if key.range().contains(&offset) {
+                    return Some(key.range().into());
+                }
+            }
+            stack.extend(obj.values());
+        }
+    }
+
+    // return the last found value, i.e., the deepest and smallest span
+    ranges.last().map(|r| r.clone().into())
 }

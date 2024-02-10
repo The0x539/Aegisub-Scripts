@@ -16,3 +16,4 @@ thiserror = "*"
 ureq = { version = "*", features = ["tls"], default-features = false }
 miette = { version = "*", features = ["fancy", "syntect-highlighter"] }
 pretty_assertions = "*"
+json-spanned-value = { version = "0.2.2", features = ["preserve_order"] }
