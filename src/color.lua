@@ -122,6 +122,39 @@ local function interpolate(t, a1, b1, c1, a2, b2, c2)
 	return a, b, c
 end
 
+local function lighten(x, y, z, amount, space)
+	-- amount: value between -1 and 1
+	-- 		   (though *technically* absolutely larger values) work too
+	space = space or "lab"
+	local l,a,b
+	if space == "lch" or space == "lab" then
+		l = x
+	elseif space == "rgb" then
+		l,a,b = LABfromXYZ(XYZfromRGB(x,y,z))
+	elseif space == "xyz" then
+		l,a,b = LABfromXYZ(x,y,z)
+	else
+		-- invalid colorspace requested, give up gracefully
+		return x, y, z
+	end
+
+	if amount > 0 then
+		local diff = 100 - l
+		l = l + diff * amount
+	else
+		local diff = l
+		l = l + diff * amount
+	end
+
+	if space == "lch" or space == "lab" then
+		return l,y,z
+	elseif space == "rgb" then
+		return RGBfromXYZ(XYZfromLAB(l,a,b))
+	elseif space == "xyz" then
+		return XYZfromLAB(l,a,b)
+	end
+end
+
 local function round(n)
 	return math.floor(n + 0.5)
 end
@@ -238,6 +271,16 @@ local function fmt_lch(l, c, h)
 	return fmt_ass_color(r, g, b)
 end
 
+local function lighten_ass(c, amount)
+	local r, g, b = parse_ass_color(c)
+	r, g, b = lighten(r, g, b, amount, "rgb")
+	return fmt_ass_color(r, g, b)
+end
+
+local function darken_ass(c, amount)
+	return lighten_ass(c, amount)
+end
+
 return {
 	interp_lch = interp_lch,
 	interp_lab = interp_lab,
@@ -249,4 +292,7 @@ return {
 	fmt_lch = fmt_lch,
 	interp_alpha = interp_alpha,
 	fmt_alpha = fmt_ass_alpha,
+	lighten = lighten_ass,
+	darken = darken_ass,
+	lighten_complex = lighten,
 }
