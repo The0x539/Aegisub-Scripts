@@ -237,6 +237,7 @@ class template_env
 	_relayer = => (new_layer) -> @line.layer = new_layer
 
 	_maxloop = (name) => (var, val, index) ->
+		error "Missing maxloop value. Did you forget to specify a loop name?" if val == nil
 		with @[name]
 			if .max[var] == nil
 				if index
