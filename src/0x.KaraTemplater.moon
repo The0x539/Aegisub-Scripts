@@ -149,7 +149,11 @@ util = (tenv) -> {
 
 		i = tenv.loopctx.state[loopname]
 		start_time = aegisub.ms_from_frame(first_frame + (i - 1) * frames)
+		if i == 1
+			start_time = tenv.line.start_time
 		end_time = aegisub.ms_from_frame(math.min(first_frame + i * frames, last_frame))
+		if i == tenv.loopctx.max[loopname]
+			end_time = tenv.line.end_time
 
 		tenv.retime 'abs', start_time, end_time
 
