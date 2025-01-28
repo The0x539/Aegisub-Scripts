@@ -1002,7 +1002,7 @@ apply_templates = (subs, lines, components, tenv) ->
 		aegisub.progress.task "Applying templates: line #{i}/#{#lines}"
 
 		tenv.orgline = orgline
-		run_code 'line'
+		run_code 'line', orgline
 		run_templates 'line', orgline
 
 		for orgword in *orgline.words
