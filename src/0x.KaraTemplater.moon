@@ -1,3 +1,9 @@
+export script_name = '0x539\'s Templater'
+export script_description = ''
+export script_author = 'The0x539'
+export script_version = '0.1.0'
+export script_namespace = '0x.KaraTemplater'
+
 require 'karaskel'
 
 try_import = (name) ->
@@ -1081,7 +1087,7 @@ can_remove = (subs, _sel, _active) ->
 			return true
 	return false
 
-aegisub.register_macro '0x539\'s Templater', 'no description', main, can_apply
+aegisub.register_macro script_name, 'Run the templater', main, can_apply
 aegisub.register_macro 'Remove generated fx', 'Remove non-commented lines whose Effect field is `fx`', remove_fx_main, can_remove
 
 print_stacktrace = ->
