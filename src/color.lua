@@ -117,7 +117,7 @@ local function OKLABfromXYZ(x, y, z)
 
 	local lms = mat_vec_mul(lms_from_xyz, {x, y, z})
 	vec_pow_inplace(lms, 1/3)
-	local lab = mat_vec_mul(matrix2, lms)	
+	local lab = mat_vec_mul(lab_from_lms, lms)
 	return lab[1], lab[2], lab[3]
 end
 	
