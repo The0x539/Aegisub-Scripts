@@ -11,6 +11,7 @@ indexmap = { version = "*", features = ["serde"] }
 chrono = { version = "*", features = ["serde"], default-features = false }
 hex = "*"
 thiserror = "*"
+time = "0.3.37"
 
 [dev-dependencies]
 ureq = { version = "*", features = ["tls"], default-features = false }
