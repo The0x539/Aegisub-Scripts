@@ -428,10 +428,17 @@ parse_templates = (subs, tenv) ->
 						error 'The `nok0` modifier is only valid for `syl` and `char` components.'
 					component.nok0 = true
 
-				when 'keeptags', 'multi'
+				when 'keeptags'
 					unless classifier == 'syl'
 						error "The `#{modifier}` modifier is only valid for `syl` components."
 					error "The `#{modifier}` modifier is not yet implemented."
+
+				when 'multi'
+					unless line_type == 'template'
+						error 'The `multi` modifier is only valid for templates.'
+					unless classifier == 'syl'
+						error 'The `multi` modifier is only valid for `syl` components.'
+					component.multi = true
 
 				when 'notext'
 					unless line_type == 'template'
@@ -1024,10 +1031,62 @@ apply_templates = (subs, lines, components, tenv) ->
 
 		for orgsyl in *orgline.syls
 			tenv.syl = orgsyl
-			-- TODO: `multi` support
 			run_code 'syl', orgsyl
-			run_templates 'syl', orgsyl
 			tenv.syl = nil
+
+			for template in *components.template.syl
+				syls_to_process = {}
+
+				if template.multi and orgsyl.highlights and #orgsyl.highlights > 0
+					for hl in *orgsyl.highlights
+						temp_syl = table.copy orgsyl
+						temp_syl.start_time = hl.start_time
+						temp_syl.end_time = hl.end_time
+						temp_syl.duration = hl.duration
+						table.insert syls_to_process, temp_syl
+				else
+					table.insert syls_to_process, orgsyl
+
+				for current_syl in *syls_to_process
+					tenv.syl = current_syl
+					tenv.template_actor = template.template_actor
+					tenv.loopctx = loopctx template
+					while not tenv.loopctx.done
+						check_cancel!
+						if should_eval template, tenv, current_syl
+							with tenv.line = table.copy tenv.orgline
+								.comment = false
+								.effect = 'fx'
+								.layer = template.layer
+								.chars = current_syl.chars
+								.words, .syls = nil, {current_syl}
+
+							skipped = false
+							tenv.skip = (using skipped) -> skipped = true
+							tenv.unskip = (using skipped) -> skipped = false
+
+							prefix = eval_body template.text, tenv
+							mixin_classes = {'line', 'syl', 'char'}
+
+							tags = run_mixins mixin_classes, template
+							tenv.line.text = build_text prefix, tenv.line.chars, tags, template
+
+							if template.merge_tags
+								tenv.line.text = tenv.line.text\gsub '}{', ''
+
+							if template.strip_trailing_space
+								tenv.line.text = tenv.line.text\gsub ' *$', ''
+
+							unless skipped
+								subs.append tenv.line
+
+							tenv.skip = nil
+							tenv.unskip = nil
+
+							tenv.line = nil
+						tenv.loopctx\incr!
+					tenv.loopctx = nil
+					tenv.syl = nil
 
 		for orgchar in *orgline.chars
 			tenv.char = orgchar
