@@ -428,10 +428,17 @@ parse_templates = (subs, tenv) ->
 						error 'The `nok0` modifier is only valid for `syl` and `char` components.'
 					component.nok0 = true
 
-				when 'keeptags', 'multi'
+				when 'multi'
+					unless line_type == 'template'
+						error 'The `multi` modifier is only valid for templates.'
 					unless classifier == 'syl'
-						error "The `#{modifier}` modifier is only valid for `syl` components."
-					error "The `#{modifier}` modifier is not yet implemented."
+						error 'The `multi` modifier is only valid for `syl` components.'
+					component.multi = true
+
+				when 'keeptags'
+					unless line_type == 'template'
+						error 'The `keeptags` modifier is only valid for templates.'
+					component.keeptags = true
 
 				when 'notext'
 					unless line_type == 'template'
@@ -641,9 +648,19 @@ preproc_chars = (line) ->
 	left = 0
 	for syl in *line.syls
 		syl.chars = {}
+
+		-- Map override blocks `{...}` to their char's index within the stripped line
+		-- Potential differential issue between lua chars and unicode.chars
+		tags = {}
+		cum_offset = 0
+		for ovr_blocks, syl_offset in syl.text\gmatch('({.-})()[^{}]') -- captures: contiguous override blocks preceding a char; char index within syl
+			cum_offset += #ovr_blocks
+			tags[i-1 + syl_offset - cum_offset] = ovr_blocks
+
 		for ch in unicode.chars syl.text_stripped
 			char = {:syl, :line, :i}
-			char.text = ch
+			char.text = (tags[i] or '') .. ch
+			char.text_stripped = ch
 			char.is_space = (ch == ' ' or ch == '\t') -- matches karaskel behavior
 			char.chars = {char}
 
@@ -917,7 +934,7 @@ build_text = (prefix, chars, tags, template) ->
 		if tags[char.ci] != nil
 			table.insert segments, tag for tag in *tags[char.ci]
 		unless template.notext
-			table.insert segments, char.text
+			table.insert segments, template.keeptags and char.text or char.text_stripped
 
 	table.concat segments
 
@@ -941,69 +958,86 @@ apply_templates = (subs, lines, components, tenv) ->
 			apply_mixins template, mixins, objs, tenv, tags, cls
 		tags
 
+	run_template = (cls, orgobj, template) ->
+		tenv.template_actor = template.template_actor
+		tenv.loopctx = loopctx template
+		while not tenv.loopctx.done
+			check_cancel!
+			if should_eval template, tenv, orgobj
+				with tenv.line = table.copy tenv.orgline
+					.comment = false
+					.effect = 'fx'
+					.layer = template.layer
+					-- TODO: all this mutable access to the original is super sketchy. do something about it?
+					.chars = orgobj.chars
+					.words, .syls = switch cls
+						when 'line' then .words, .syls
+						when 'word' then {orgobj}, nil
+						when 'syl' then nil, {orgobj}
+						when 'char' then nil, nil
+
+					-- I have no idea what I'm doing.
+					--ci_offset = orgobj.chars[1].ci - 1
+					--char.i -= ci_offset for char in *.chars
+
+					--if .syls
+					--	si_offset = .syls[1].si - 1
+					--	syl.i -= si_offset for syl in *.syls
+
+					--if .words
+					--	wi_offset = .words[1].wi - 1
+					--	word.i -= wi_offset for word in *.words
+
+				skipped = false
+				tenv.skip = (using skipped) -> skipped = true
+				tenv.unskip = (using skipped) -> skipped = false
+
+				prefix = eval_body template.text, tenv
+				mixin_classes = switch cls
+					when 'line' then {'line', 'word', 'syl', 'char'}
+					when 'word' then {'line', 'word', 'char'}
+					when 'syl' then {'line', 'syl', 'char'}
+					when 'char' then {'line', 'char'}
+
+				tags = run_mixins mixin_classes, template
+				tenv.line.text = build_text prefix, tenv.line.chars, tags, template
+
+				if template.merge_tags
+					-- A primitive way of doing this. Patches welcome.
+					-- Otherwise, if you're doing something fancy enough that this breaks it and `nomerge` isn't acceptable, you're on your own.
+					tenv.line.text = tenv.line.text\gsub '}{', ''
+
+				if template.strip_trailing_space
+					-- Less primitive than the above thing, but still primitive. Might have worst-case quadratic performance.
+					tenv.line.text = tenv.line.text\gsub ' *$', ''
+
+				unless skipped
+					subs.append tenv.line
+
+				tenv.skip = nil
+				tenv.unskip = nil
+
+				tenv.line = nil
+			tenv.loopctx\incr!
+		tenv.loopctx = nil
+
 	run_templates = (cls, orgobj) ->
 		for template in *components.template[cls]
-			tenv.template_actor = template.template_actor
-			tenv.loopctx = loopctx template
-			while not tenv.loopctx.done
-				check_cancel!
-				if should_eval template, tenv, orgobj
-					with tenv.line = table.copy tenv.orgline
-						.comment = false
-						.effect = 'fx'
-						.layer = template.layer
-						-- TODO: all this mutable access to the original is super sketchy. do something about it?
-						.chars = orgobj.chars
-						.words, .syls = switch cls
-							when 'line' then .words, .syls
-							when 'word' then {orgobj}, nil
-							when 'syl' then nil, {orgobj}
-							when 'char' then nil, nil
+			if template.multi and orgobj.highlights and #orgobj.highlights > 0
+				mcls = 'm' .. cls
+				for hl in *orgobj.highlights
+					hl_obj = table.copy orgobj
+					hl_obj.start_time = hl.start_time
+					hl_obj.end_time = hl.end_time
+					hl_obj.duration = hl.duration
+					tenv[cls] = hl_obj
+					tenv[mcls] = orgobj
+					run_template cls, hl_obj, template
 
-						-- I have no idea what I'm doing.
-						--ci_offset = orgobj.chars[1].ci - 1
-						--char.i -= ci_offset for char in *.chars
-
-						--if .syls
-						--	si_offset = .syls[1].si - 1
-						--	syl.i -= si_offset for syl in *.syls
-
-						--if .words
-						--	wi_offset = .words[1].wi - 1
-						--	word.i -= wi_offset for word in *.words
-
-					skipped = false
-					tenv.skip = (using skipped) -> skipped = true
-					tenv.unskip = (using skipped) -> skipped = false
-
-					prefix = eval_body template.text, tenv
-					mixin_classes = switch cls
-						when 'line' then {'line', 'word', 'syl', 'char'}
-						when 'word' then {'line', 'word', 'char'}
-						when 'syl' then {'line', 'syl', 'char'}
-						when 'char' then {'line', 'char'}
-
-					tags = run_mixins mixin_classes, template
-					tenv.line.text = build_text prefix, tenv.line.chars, tags, template
-
-					if template.merge_tags
-						-- A primitive way of doing this. Patches welcome.
-						-- Otherwise, if you're doing something fancy enough that this breaks it and `nomerge` isn't acceptable, you're on your own.
-						tenv.line.text = tenv.line.text\gsub '}{', ''
-
-					if template.strip_trailing_space
-						-- Less primitive than the above thing, but still primitive. Might have worst-case quadratic performance.
-						tenv.line.text = tenv.line.text\gsub ' *$', ''
-
-					unless skipped
-						subs.append tenv.line
-
-					tenv.skip = nil
-					tenv.unskip = nil
-
-					tenv.line = nil
-				tenv.loopctx\incr!
-			tenv.loopctx = nil
+				tenv[cls] = orgobj
+				tenv[mcls] = nil
+			else
+				run_template cls, orgobj, template
 
 	run_code 'once'
 
@@ -1024,7 +1058,6 @@ apply_templates = (subs, lines, components, tenv) ->
 
 		for orgsyl in *orgline.syls
 			tenv.syl = orgsyl
-			-- TODO: `multi` support
 			run_code 'syl', orgsyl
 			run_templates 'syl', orgsyl
 			tenv.syl = nil
